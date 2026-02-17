@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Talkbot Control</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Talkbot</h1>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="bot">Bot</button>
+      <button class="tab" data-tab="red">Red</button>
+    </div>
+
+    <div class="tab-content active" id="tab-bot">
+      <div class="card" id="status-card">
+        <h2>Estado</h2>
+        <div class="status-indicator">
+          <span class="dot" id="status-dot"></span>
+          <span id="status-text">Conectando...</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Agente</h2>
+        <div class="agent-selector">
+          <button class="agent-card selected" data-agent="lupe">
+            <span class="agent-name">Lupe</span>
+            <span class="agent-desc">Mujer, amigable</span>
+          </button>
+          <button class="agent-card" data-agent="pedro">
+            <span class="agent-name">Pedro</span>
+            <span class="agent-desc">Hombre, formal</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Volumen</h2>
+        <input type="range" id="volume-slider" min="0" max="100" value="80">
+        <span id="volume-value">80%</span>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-red">
+      <div class="card">
+        <h2>Backend URL</h2>
+        <input type="text" id="backend-url" class="text-input" placeholder="http://192.168.0.187:8000">
+        <p class="hint">Se aplica inmediatamente y se guarda en memoria.</p>
+        <button id="save-backend" class="btn">Guardar URL</button>
+      </div>
+
+      <div class="card">
+        <h2>Dispositivo</h2>
+        <button id="reboot-btn" class="btn btn-danger">Reiniciar Talkbot</button>
+      </div>
+
+      <div class="card">
+        <h2>Info</h2>
+        <div class="info-grid">
+          <span>IP:</span><span id="info-ip">-</span>
+          <span>WiFi RSSI:</span><span id="info-rssi">-</span>
+          <span>Uptime:</span><span id="info-uptime">-</span>
+          <span>Heap libre:</span><span id="info-heap">-</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

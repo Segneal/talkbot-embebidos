@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Talkbot - Diagrama de Circuito</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a2e; color: #eee; font-family: 'Segoe UI', system-ui, sans-serif; padding: 30px; }
+  h1 { text-align: center; margin-bottom: 8px; color: #e94560; font-size: 28px; }
+  .subtitle { text-align: center; color: #777; margin-bottom: 30px; font-size: 14px; }
+  .diagram { position: relative; width: 1100px; margin: 0 auto; height: 720px; }
+
+  .component {
+    position: absolute;
+    border: 2px solid #444;
+    border-radius: 12px;
+    padding: 14px 18px;
+    background: #16213e;
+    text-align: center;
+    min-width: 130px;
+  }
+  .component .name {
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 4px;
+  }
+  .component .detail {
+    font-size: 11px;
+    color: #888;
+    line-height: 1.4;
+  }
+  .component .pins {
+    font-size: 10px;
+    color: #0f9;
+    margin-top: 6px;
+    font-family: 'Consolas', monospace;
+  }
+
+  /* Component-specific colors */
+  .battery { border-color: #f5a623; }
+  .battery .name { color: #f5a623; }
+  .switch { border-color: #f5a623; }
+  .switch .name { color: #f5a623; }
+  .esp32 { border-color: #4fc3f7; min-width: 220px; }
+  .esp32 .name { color: #4fc3f7; font-size: 18px; }
+  .amp { border-color: #ab47bc; }
+  .amp .name { color: #ab47bc; }
+  .mic { border-color: #66bb6a; }
+  .mic .name { color: #66bb6a; }
+  .speaker { border-color: #ef5350; }
+  .speaker .name { color: #ef5350; }
+  .led { border-color: #fdd835; }
+  .led .name { color: #fdd835; }
+  .ledswitch { border-color: #ff8a65; }
+  .ledswitch .name { color: #ff8a65; }
+  .backend { border-color: #26c6da; border-style: dashed; }
+  .backend .name { color: #26c6da; }
+
+  /* SVG wires */
+  svg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+  }
+  .wire { fill: none; stroke-width: 2.5; stroke-linecap: round; }
+  .wire-power { stroke: #f5a623; }
+  .wire-i2s { stroke: #ab47bc; }
+  .wire-analog { stroke: #66bb6a; }
+  .wire-speaker { stroke: #ef5350; }
+  .wire-led { stroke: #fdd835; }
+  .wire-wifi { stroke: #26c6da; stroke-dasharray: 8 4; }
+  .wire-gnd { stroke: #666; stroke-dasharray: 4 3; }
+  .wire-gpio { stroke: #ff8a65; }
+
+  .label {
+    font-size: 10px;
+    font-family: 'Consolas', monospace;
+    fill: #ccc;
+  }
+  .label-power { fill: #f5a623; }
+  .label-i2s { fill: #ab47bc; }
+  .label-analog { fill: #66bb6a; }
+  .label-gpio { fill: #ff8a65; }
+  .label-wifi { fill: #26c6da; }
+
+  .legend {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    background: #16213e;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 12px;
+    line-height: 2;
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; }
+  .legend-line {
+    width: 30px; height: 3px; border-radius: 2px; display: inline-block;
+  }
+
+  .flow-arrow {
+    font-size: 18px;
+    color: #555;
+    position: absolute;
+  }
+</style>
+</head>
+<body>
+
+<h1>Talkbot - Diagrama de Circuito</h1>
+<p class="subtitle">ESP32 + MAX9814 (mic) + MAX98357 (amp) + LEDs</p>
+
+<div class="diagram">
+  <svg viewBox="0 0 1100 720">
+    <!-- Power: Batteries → Switch → ESP32 -->
+    <path class="wire wire-power" d="M 170,70 L 300,70" />
+    <path class="wire wire-power" d="M 420,70 L 490,70 L 490,200" />
+    <!-- Power: ESP32 → MAX98357 VIN -->
+    <path class="wire wire-power" d="M 580,200 L 580,160 L 780,160 L 780,200" />
+    <text class="label label-power" x="660" y="152">3.3V</text>
+    <!-- Power: ESP32 → MAX9814 VDD -->
+    <path class="wire wire-power" d="M 490,200 L 490,160 L 260,160 L 260,200" />
+    <text class="label label-power" x="340" y="152">3.3V</text>
+
+    <!-- GND lines -->
+    <path class="wire wire-gnd" d="M 260,310 L 260,360 L 530,360" />
+    <text class="label" x="370" y="372" fill="#666">GND</text>
+    <path class="wire wire-gnd" d="M 780,310 L 780,360 L 570,360" />
+    <text class="label" x="660" y="372" fill="#666">GND</text>
+
+    <!-- Analog: MAX9814 OUT → ESP32 GPIO34 -->
+    <path class="wire wire-analog" d="M 310,260 L 440,260" />
+    <text class="label label-analog" x="345" y="252">OUT → GP34</text>
+
+    <!-- I2S: ESP32 → MAX98357 -->
+    <path class="wire wire-i2s" d="M 660,240 L 730,240" />
+    <text class="label label-i2s" x="665" y="232">GP26 → BCLK</text>
+    <path class="wire wire-i2s" d="M 660,260 L 730,260" />
+    <text class="label label-i2s" x="665" y="272">GP25 → LRC</text>
+    <path class="wire wire-i2s" d="M 660,280 L 730,280" />
+    <text class="label label-i2s" x="665" y="292">GP22 → DIN</text>
+
+    <!-- Speaker: MAX98357 → Speaker -->
+    <path class="wire wire-speaker" d="M 830,260 L 950,260" />
+    <text class="label" x="870" y="252" fill="#ef5350">+/−</text>
+
+    <!-- LEDs: ESP32 → LEDs -->
+    <path class="wire wire-led" d="M 500,380 L 500,460 L 350,460" />
+    <text class="label" x="390" y="452" fill="#fdd835">GP15</text>
+    <path class="wire wire-led" d="M 530,380 L 530,500 L 350,500" />
+    <text class="label" x="390" y="492" fill="#fdd835">GP2</text>
+    <path class="wire wire-led" d="M 560,380 L 560,540 L 350,540" />
+    <text class="label" x="390" y="532" fill="#fdd835">GP4</text>
+
+    <!-- LED Switch → ESP32 -->
+    <path class="wire wire-gpio" d="M 600,380 L 600,500 L 730,500" />
+    <text class="label label-gpio" x="620" y="492">GP33</text>
+
+    <!-- WiFi to Backend (dashed) -->
+    <path class="wire wire-wifi" d="M 550,380 L 550,620 L 650,620" />
+    <text class="label label-wifi" x="555" y="610">WiFi</text>
+  </svg>
+
+  <!-- Batteries -->
+  <div class="component battery" style="left: 40px; top: 45px;">
+    <div class="name">Pilas</div>
+    <div class="detail">4x AA (6V)<br>o PowerBank 5V</div>
+  </div>
+
+  <!-- Power Switch -->
+  <div class="component switch" style="left: 300px; top: 45px;">
+    <div class="name">Switch ON/OFF</div>
+    <div class="detail">Corta alimentaci&oacute;n</div>
+  </div>
+
+  <!-- MAX9814 Mic -->
+  <div class="component mic" style="left: 170px; top: 200px;">
+    <div class="name">MAX9814</div>
+    <div class="detail">Micr&oacute;fono AGC</div>
+    <div class="pins">VDD | GND | OUT</div>
+  </div>
+
+  <!-- ESP32 -->
+  <div class="component esp32" style="left: 440px; top: 200px;">
+    <div class="name">ESP32</div>
+    <div class="detail">
+      Cerebro del sistema<br>
+      WiFi + ADC + I2S
+    </div>
+    <div class="pins">
+      IN: GP34 (mic)<br>
+      OUT: GP26,25,22 (I2S)<br>
+      OUT: GP15,2,4 (LEDs)<br>
+      IN: GP33 (switch)
+    </div>
+  </div>
+
+  <!-- MAX98357 Amp -->
+  <div class="component amp" style="left: 730px; top: 200px;">
+    <div class="name">MAX98357</div>
+    <div class="detail">Amplificador I2S</div>
+    <div class="pins">VIN | GND | BCLK<br>LRC | DIN | + | −</div>
+  </div>
+
+  <!-- Speaker -->
+  <div class="component speaker" style="left: 930px; top: 230px;">
+    <div class="name">Parlante</div>
+    <div class="detail">8&#8486; 3W</div>
+  </div>
+
+  <!-- LEDs -->
+  <div class="component led" style="left: 170px; top: 440px;">
+    <div class="name">LEDs</div>
+    <div class="detail">
+      <span style="color:#ef5350">&#9679; Rojo</span> → Hablando<br>
+      <span style="color:#fdd835">&#9679; Amarillo</span> → Procesando<br>
+      <span style="color:#66bb6a">&#9679; Verde</span> → Escuchando
+    </div>
+  </div>
+
+  <!-- LED Switch -->
+  <div class="component ledswitch" style="left: 730px; top: 470px;">
+    <div class="name">Switch LEDs</div>
+    <div class="detail">ON/OFF LEDs<br>GP33 → GND</div>
+  </div>
+
+  <!-- Backend (WiFi) -->
+  <div class="component backend" style="left: 650px; top: 590px;">
+    <div class="name">Backend (PC)</div>
+    <div class="detail">
+      Node.js :8000<br>
+      Transcribe → Claude → Polly
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <div class="legend-item"><span class="legend-line" style="background:#f5a623"></span> Alimentaci&oacute;n (VIN/3.3V)</div>
+    <div class="legend-item"><span class="legend-line" style="background:#666; opacity:0.6"></span> GND</div>
+    <div class="legend-item"><span class="legend-line" style="background:#66bb6a"></span> Analog (mic → ADC)</div>
+    <div class="legend-item"><span class="legend-line" style="background:#ab47bc"></span> I2S (audio digital)</div>
+    <div class="legend-item"><span class="legend-line" style="background:#fdd835"></span> GPIO (LEDs)</div>
+    <div class="legend-item"><span class="legend-line" style="background:#ff8a65"></span> GPIO (switch)</div>
+    <div class="legend-item"><span class="legend-line" style="background:#26c6da; border-top: 2px dashed #26c6da; height:0"></span> WiFi (inal&aacute;mbrico)</div>
+  </div>
+</div>
+
+</body>
+</html>

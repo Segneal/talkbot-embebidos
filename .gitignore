@@ -1,0 +1,8 @@
+node_modules/
+backend/.env
+.claude/
+.env*
+.pio/
+.vscode/
+__pycache__/
+logs/
