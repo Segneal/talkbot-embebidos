@@ -124,6 +124,7 @@ $('save-backend').addEventListener('click', function() {
     body: JSON.stringify({ backendUrl: url })
   }).then(r => r.json())
     .then(() => {
+      cachedBackendUrl = url;
       this.textContent = 'Guardado!';
       setTimeout(() => { this.textContent = 'Guardar URL'; }, 1500);
     })
@@ -146,6 +147,67 @@ $('reboot-btn').addEventListener('click', function() {
     .catch(() => {});
 });
 
-// Polling cada 2 segundos
+// === Speaker: reproducir audio del backend ===
+let speakerCount = 0;
+let cachedBackendUrl = '';
+
+function addChatMsg(role, text) {
+  const log = $('chat-log');
+  const msg = document.createElement('div');
+  msg.className = 'chat-msg ' + (role === 'user' ? 'chat-user' : 'chat-bot');
+  const label = document.createElement('div');
+  label.className = 'chat-label';
+  label.textContent = role === 'user' ? 'Tú' : 'Talkbot';
+  const content = document.createElement('div');
+  content.className = 'chat-text';
+  content.textContent = text;
+  msg.appendChild(label);
+  msg.appendChild(content);
+  log.appendChild(msg);
+  log.scrollTop = log.scrollHeight;
+}
+
+// Obtener backend URL una sola vez (no depender del ESP32 en cada poll)
+function initBackendUrl() {
+  fetch('/api/config')
+    .then(r => r.json())
+    .then(data => {
+      if (data.backendUrl) cachedBackendUrl = data.backendUrl;
+    })
+    .catch(function(){});
+}
+
+function pollSpeaker() {
+  if (!cachedBackendUrl) { initBackendUrl(); return; }
+  fetch(cachedBackendUrl + '/api/response-count')
+    .then(r => r.json())
+    .then(data => {
+      if (data.count > speakerCount) {
+        speakerCount = data.count;
+
+        if (data.lastUser) addChatMsg('user', data.lastUser);
+        if (data.lastBot) addChatMsg('bot', data.lastBot);
+
+        $('speaker-dot').className = 'dot speaking';
+        $('speaker-status').textContent = 'Reproduciendo...';
+
+        var audio = new Audio(cachedBackendUrl + '/api/last-audio?' + Date.now());
+        audio.onended = function() {
+          $('speaker-dot').className = 'dot idle';
+          $('speaker-status').textContent = 'Esperando respuesta...';
+        };
+        audio.onerror = function() {
+          $('speaker-dot').className = 'dot idle';
+          $('speaker-status').textContent = 'Esperando respuesta...';
+        };
+        audio.play().catch(function(){});
+      }
+    })
+    .catch(function(){});
+}
+
+// Polling
 fetchStatus();
+initBackendUrl();
 setInterval(fetchStatus, 2000);
+setInterval(pollSpeaker, 1000);

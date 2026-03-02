@@ -1,4 +1,5 @@
 #include "audio_recorder.h"
+#include <driver/dac.h>
 
 #define I2S_ADC_UNIT    ADC_UNIT_1
 #define I2S_ADC_CHANNEL ADC1_CHANNEL_6  // GPIO 34
@@ -28,6 +29,9 @@ bool AudioRecorder::_initI2sAdc() {
     i2s_driver_uninstall(I2S_NUM_0);
     return false;
   }
+
+  // Deshabilitar DAC para que no reproduzca la entrada del mic por GPIO25
+  i2s_set_dac_mode(I2S_DAC_CHANNEL_DISABLE);
 
   i2s_adc_enable(I2S_NUM_0);
   return true;
@@ -77,13 +81,16 @@ void AudioRecorder::startRecording() {
   }
 
   _recording = true;
+  _lastPeakLevel = 0.0f;
   Serial.println("Grabación iniciada");
 
   int16_t readBuf[256];
   int sampleCounter = 0;
+  int16_t chunkPeak = 0;
 
   while (_recording && _pcmSamples < maxSamples) {
     size_t bytesRead = 0;
+    chunkPeak = 0;
 
     esp_err_t err = i2s_read(I2S_NUM_0, readBuf, sizeof(readBuf), &bytesRead, 100 / portTICK_PERIOD_MS);
     if (err == ESP_OK && bytesRead > 0) {
@@ -96,8 +103,13 @@ void AudioRecorder::startRecording() {
           sample = (sample & 0x0FFF) - 2048;
           sample <<= 4;
           pcmDest[_pcmSamples++] = sample;
+          // Track peak level for VU meter
+          int16_t absSample = abs(sample);
+          if (absSample > chunkPeak) chunkPeak = absSample;
         }
       }
+      // Update peak level (normalize to 0.0-1.0, 32767 = max int16)
+      _lastPeakLevel = (float)chunkPeak / 32767.0f;
     }
     vTaskDelay(1);
   }

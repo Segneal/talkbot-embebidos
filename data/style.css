@@ -192,6 +192,40 @@ input[type="range"] {
   display: block;
 }
 
+.chat-log {
+  max-height: 300px;
+  overflow-y: auto;
+  font-size: 0.95em;
+}
+
+.chat-msg {
+  padding: 8px 0;
+  border-bottom: 1px solid #0f3460;
+}
+
+.chat-msg:last-child {
+  border-bottom: none;
+}
+
+.chat-label {
+  font-size: 0.75em;
+  color: #888;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.chat-text {
+  line-height: 1.4;
+}
+
+.chat-user .chat-text {
+  color: #4caf50;
+}
+
+.chat-bot .chat-text {
+  color: #eee;
+}
+
 .text-input {
   width: 100%;
   padding: 10px;

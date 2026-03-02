@@ -2,8 +2,8 @@
 #include <WiFi.h>
 #include <ArduinoJson.h>
 
-void TalkbotWebServer::begin(LedController* leds, AudioPlayer* player, TalkbotState* statePtr, ApiClient* api) {
-  _leds = leds;
+void TalkbotWebServer::begin(DisplayController* display, AudioPlayer* player, TalkbotState* statePtr, ApiClient* api) {
+  _display = display;
   _player = player;
   _statePtr = statePtr;
   _api = api;
@@ -27,7 +27,6 @@ void TalkbotWebServer::begin(LedController* leds, AudioPlayer* player, TalkbotSt
   _server.on("/app.js", HTTP_GET, [this]() { _handleFile("/app.js", "application/javascript"); });
   _server.on("/api/status", HTTP_GET, [this]() { _handleStatus(); });
   _server.on("/api/volume", HTTP_POST, [this]() { _handleSetVolume(); });
-  _server.on("/api/leds", HTTP_POST, [this]() { _handleSetLeds(); });
   _server.on("/api/config", HTTP_GET, [this]() { _handleGetConfig(); });
   _server.on("/api/config", HTTP_POST, [this]() { _handleSetConfig(); });
   _server.on("/api/reboot", HTTP_POST, [this]() { _handleReboot(); });
@@ -63,12 +62,7 @@ void TalkbotWebServer::_handleStatus() {
   doc["freeHeap"] = ESP.getFreeHeap();
   doc["ip"] = WiFi.localIP().toString();
   doc["rssi"] = WiFi.RSSI();
-
-  // LED config actual
-  JsonObject leds = doc["leds"].to<JsonObject>();
-  leds["listening"] = _leds->getListeningLed();
-  leds["speaking"] = _leds->getSpeakingLed();
-  leds["processing"] = _leds->getProcessingLed();
+  doc["displayScreen"] = _display->getScreen();
 
   String response;
   serializeJson(doc, response);
@@ -91,38 +85,12 @@ void TalkbotWebServer::_handleSetVolume() {
   if (!doc["volume"].isNull()) {
     uint8_t vol = doc["volume"].as<uint8_t>();
     _player->setVolume(vol);
+    _display->setVolume(vol);
     Serial.printf("Volumen ajustado a: %d\n", vol);
     _server.send(200, "application/json", "{\"ok\":true,\"volume\":" + String(vol) + "}");
   } else {
     _server.send(400, "application/json", "{\"error\":\"Falta campo volume\"}");
   }
-}
-
-void TalkbotWebServer::_handleSetLeds() {
-  if (!_server.hasArg("plain")) {
-    _server.send(400, "application/json", "{\"error\":\"No body\"}");
-    return;
-  }
-
-  JsonDocument doc;
-  DeserializationError err = deserializeJson(doc, _server.arg("plain"));
-  if (err) {
-    _server.send(400, "application/json", "{\"error\":\"JSON inválido\"}");
-    return;
-  }
-
-  if (!doc["listening"].isNull()) {
-    _leds->setListeningLed(_pinFromColorName(doc["listening"].as<String>()));
-  }
-  if (!doc["speaking"].isNull()) {
-    _leds->setSpeakingLed(_pinFromColorName(doc["speaking"].as<String>()));
-  }
-  if (!doc["processing"].isNull()) {
-    _leds->setProcessingLed(_pinFromColorName(doc["processing"].as<String>()));
-  }
-
-  Serial.println("Configuración de LEDs actualizada");
-  _server.send(200, "application/json", "{\"ok\":true}");
 }
 
 void TalkbotWebServer::_handleGetConfig() {
@@ -171,6 +139,7 @@ void TalkbotWebServer::_handleSetConfig() {
   if (!doc["volume"].isNull()) {
     uint8_t vol = doc["volume"].as<uint8_t>();
     _player->setVolume(vol);
+    _display->setVolume(vol);
     Serial.printf("Volumen ajustado a: %d\n", vol);
   }
 
@@ -212,11 +181,4 @@ String TalkbotWebServer::_stateToString(TalkbotState state) {
     case STATE_ERROR:      return "error";
     default:               return "unknown";
   }
-}
-
-uint8_t TalkbotWebServer::_pinFromColorName(const String& color) {
-  if (color == "green")  return LED_GREEN_PIN;
-  if (color == "red")    return LED_RED_PIN;
-  if (color == "yellow") return LED_YELLOW_PIN;
-  return LED_GREEN_PIN;  // default
 }

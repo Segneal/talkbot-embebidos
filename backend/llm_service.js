@@ -92,7 +92,7 @@ async function invokeWithToolLoop(systemPrompt) {
   for (let i = 0; i < 3; i++) {
     const body = JSON.stringify({
       anthropic_version: 'bedrock-2023-05-31',
-      max_tokens: 160,
+      max_tokens: 100,
       system: systemPrompt,
       messages,
       tools: TOOLS,

@@ -12,6 +12,7 @@
 
     <div class="tabs">
       <button class="tab active" data-tab="bot">Bot</button>
+      <button class="tab" data-tab="speaker">Speaker</button>
       <button class="tab" data-tab="red">Red</button>
     </div>
 
@@ -45,6 +46,20 @@
       </div>
     </div>
 
+    <div class="tab-content" id="tab-speaker">
+      <div class="card">
+        <h2>Estado</h2>
+        <div class="status-indicator">
+          <span class="dot" id="speaker-dot"></span>
+          <span id="speaker-status">Esperando respuesta...</span>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Conversación</h2>
+        <div class="chat-log" id="chat-log"></div>
+      </div>
+    </div>
+
     <div class="tab-content" id="tab-red">
       <div class="card">
         <h2>Backend URL</h2>
@@ -70,6 +85,6 @@
     </div>
   </div>
 
-  <script src="/app.js"></script>
+  <script src="/app.js?v=2"></script>
 </body>
 </html>
