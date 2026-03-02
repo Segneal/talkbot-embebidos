@@ -5,39 +5,46 @@ Asistente de voz con ESP32 y push-to-talk. Firmware embebido + backend Node.js c
 ## Arquitectura
 
 ```
-[Botón] → [ESP32 + MAX9814] → WiFi → [Backend Node.js]
-                                         ├── Amazon Transcribe (STT)
-                                         ├── Claude Bedrock (LLM)
-                                         └── Amazon Polly (TTS)
-[Speaker + MAX98357] ← WAV ← ──────────────┘
+[Botón PTT] → [ESP32 + MAX9814] → WiFi → [Backend Node.js]
+                                            ├── Amazon Transcribe (STT)
+                                            ├── Claude Bedrock (LLM)
+                                            └── Amazon Polly (TTS)
+[Speaker + PAM8403] ← WAV ← ───────────────┘
+[Display ST7789]
 ```
 
-El ESP32 graba audio al mantener presionado el botón, lo envía al backend por HTTP, y reproduce la respuesta de audio por el parlante.
+El ESP32 graba audio al mantener presionado el botón, lo envía al backend por HTTP, y reproduce la respuesta de audio por el parlante. Un display TFT muestra el estado, volumen, información de red y estadísticas.
 
 ## Hardware
 
 | Componente | Descripción |
 |---|---|
-| ESP32 Dev Board | Microcontrolador principal |
+| ESP32 DevKit v1 | Microcontrolador principal |
 | MAX9814 | Micrófono con AGC |
-| MAX98357 | Amplificador I2S |
-| Parlante 8Ω 3W | Salida de audio |
-| 3 LEDs (R/Y/G) | Indicadores de estado |
-| Pulsador | Push-to-talk |
-| 4x pilas AA / PowerBank 5V | Alimentación |
+| PAM8403 | Amplificador analógico 3W (clase D) |
+| Parlante 8Ω | Salida de audio |
+| Portapilas 2x AA (3V) | Alimentación del PAM8403 |
+| ST7789 240x240 | Display TFT color SPI |
+| 4 pulsadores | PTT, Vol+, Vol-, Pantalla |
+| Resistencia 10KΩ | Pulldown en GPIO25 (DAC) |
+| Breadboard + cables dupont | Prototipado |
 
 ### Pinout
 
-| Pin | GPIO | Función |
+| Componente | GPIO | Función |
 |---|---|---|
-| MAX98357 BCLK | 26 | I2S bit clock |
-| MAX98357 LRC | 25 | I2S word select |
-| MAX98357 DIN | 22 | I2S data out |
 | MAX9814 OUT | 34 | Entrada analógica (ADC1_CH6) |
+| DAC (→ PAM8403) | 25 | Salida analógica DAC interno |
 | Botón PTT | 27 | INPUT_PULLUP, activo LOW |
-| LED Rojo | 15 | Hablando / Error |
-| LED Amarillo | 2 | Procesando |
-| LED Verde | 4 | Escuchando |
+| Botón Vol+ | 32 | INPUT_PULLUP, activo LOW |
+| Botón Vol- | 33 | INPUT_PULLUP, activo LOW |
+| Botón Pantalla | 13 | INPUT_PULLUP, activo LOW |
+| ST7789 MOSI | 23 | Datos SPI |
+| ST7789 SCK | 18 | Reloj SPI |
+| ST7789 CS | 5 | Chip select |
+| ST7789 DC | 2 | Data/Command |
+| ST7789 RST | 4 | Reset |
+| ST7789 BL | 15 | Backlight (PWM) |
 
 El archivo `circuit_diagram.html` contiene el diagrama de circuito interactivo (abrir en navegador).
 
@@ -48,8 +55,8 @@ src/                          # Firmware ESP32
 ├── main.cpp                  # Loop principal y máquina de estados
 ├── config.h                  # Pines, WiFi, configuración
 ├── audio_recorder.h/cpp      # Grabación I2S en modo ADC
-├── audio_player.h/cpp        # Reproducción I2S con control de volumen
-├── led_controller.h/cpp      # Control de LEDs por estado
+├── audio_player.h/cpp        # Reproducción DAC con control de volumen
+├── display_controller.h/cpp  # Display TFT ST7789 (6 pantallas)
 ├── api_client.h/cpp          # Cliente HTTP al backend
 └── web_server.h/cpp          # Servidor web + API REST
 
@@ -74,13 +81,27 @@ IDLE → LISTENING → PROCESSING → SPEAKING → IDLE
   └──────────────── ERROR ←──────────┘
 ```
 
-| Estado | LED | Descripción |
+| Estado | Display | Descripción |
 |---|---|---|
-| IDLE | Apagado | Esperando botón |
-| LISTENING | Verde | Grabando audio |
-| PROCESSING | Amarillo | Enviando al backend |
-| SPEAKING | Rojo | Reproduciendo respuesta |
-| ERROR | Rojo (parpadeo) | Error, vuelve a IDLE en 3s |
+| IDLE | Icono reposo (cyan) | Esperando botón |
+| LISTENING | Icono micrófono (verde) | Grabando audio |
+| PROCESSING | Animación rotativa (amarillo) | Enviando al backend |
+| SPEAKING | Icono parlante (naranja) | Reproduciendo respuesta |
+| ERROR | Icono error (rojo) | Error, vuelve a IDLE en 3s |
+| WIFI_CONFIG | Icono WiFi (azul) | Portal cautivo activo |
+
+### Pantallas del display
+
+El botón de pantalla navega entre 6 vistas:
+
+| # | Pantalla | Contenido |
+|---|---|---|
+| 0 | Estado | Estado actual con icono animado |
+| 1 | Volumen | Barra de volumen y nivel de pico |
+| 2 | WiFi | SSID, IP, RSSI, calidad de señal |
+| 3 | Conversación | Última pregunta y respuesta |
+| 4 | Estadísticas | Conversaciones, latencia, heap, uptime |
+| 5 | VU Meter | Medidor de nivel de audio en tiempo real |
 
 ## Instalación
 
@@ -175,8 +196,9 @@ Accesible desde `http://talkbot.local` o la IP del ESP32.
 
 ## Detalles técnicos
 
-- **Grabación:** I2S_NUM_0 en modo ADC, 16kHz/16-bit/mono, máximo 3 segundos
-- **Reproducción:** I2S_NUM_1 en modo TX, 22050Hz (frecuencia de salida de Polly)
+- **Grabación:** I2S_NUM_0 en modo ADC, muestreo a 44.1kHz con downsampling a 16kHz, mono 16-bit, máximo 3 segundos
+- **Reproducción:** DAC interno del ESP32 (GPIO25), salida analógica al PAM8403, 22050Hz
+- **Display:** ST7789 via SPI con TFT_eSPI, dirty-flag pattern para updates parciales, TFT_eSprite anti-flicker
 - **Threading:** La grabación corre en un task de FreeRTOS (Core 1) para no bloquear el loop principal
 - **Persistencia:** La URL del backend se guarda en NVS (Non-Volatile Storage)
 - **mDNS:** El dispositivo se anuncia como `talkbot.local`
