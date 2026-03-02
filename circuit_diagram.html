@@ -4,248 +4,275 @@
 <meta charset="UTF-8">
 <title>Talkbot - Diagrama de Circuito</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #1a1a2e; color: #eee; font-family: 'Segoe UI', system-ui, sans-serif; padding: 30px; }
-  h1 { text-align: center; margin-bottom: 8px; color: #e94560; font-size: 28px; }
-  .subtitle { text-align: center; color: #777; margin-bottom: 30px; font-size: 14px; }
-  .diagram { position: relative; width: 1100px; margin: 0 auto; height: 720px; }
-
-  .component {
-    position: absolute;
-    border: 2px solid #444;
-    border-radius: 12px;
-    padding: 14px 18px;
-    background: #16213e;
-    text-align: center;
-    min-width: 130px;
-  }
-  .component .name {
-    font-weight: 700;
-    font-size: 15px;
-    margin-bottom: 4px;
-  }
-  .component .detail {
-    font-size: 11px;
-    color: #888;
-    line-height: 1.4;
-  }
-  .component .pins {
-    font-size: 10px;
-    color: #0f9;
-    margin-top: 6px;
-    font-family: 'Consolas', monospace;
-  }
-
-  /* Component-specific colors */
-  .battery { border-color: #f5a623; }
-  .battery .name { color: #f5a623; }
-  .switch { border-color: #f5a623; }
-  .switch .name { color: #f5a623; }
-  .esp32 { border-color: #4fc3f7; min-width: 220px; }
-  .esp32 .name { color: #4fc3f7; font-size: 18px; }
-  .amp { border-color: #ab47bc; }
-  .amp .name { color: #ab47bc; }
-  .mic { border-color: #66bb6a; }
-  .mic .name { color: #66bb6a; }
-  .speaker { border-color: #ef5350; }
-  .speaker .name { color: #ef5350; }
-  .led { border-color: #fdd835; }
-  .led .name { color: #fdd835; }
-  .ledswitch { border-color: #ff8a65; }
-  .ledswitch .name { color: #ff8a65; }
-  .backend { border-color: #26c6da; border-style: dashed; }
-  .backend .name { color: #26c6da; }
-
-  /* SVG wires */
-  svg {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    pointer-events: none;
-  }
-  .wire { fill: none; stroke-width: 2.5; stroke-linecap: round; }
-  .wire-power { stroke: #f5a623; }
-  .wire-i2s { stroke: #ab47bc; }
-  .wire-analog { stroke: #66bb6a; }
-  .wire-speaker { stroke: #ef5350; }
-  .wire-led { stroke: #fdd835; }
-  .wire-wifi { stroke: #26c6da; stroke-dasharray: 8 4; }
-  .wire-gnd { stroke: #666; stroke-dasharray: 4 3; }
-  .wire-gpio { stroke: #ff8a65; }
-
-  .label {
-    font-size: 10px;
-    font-family: 'Consolas', monospace;
-    fill: #ccc;
-  }
-  .label-power { fill: #f5a623; }
-  .label-i2s { fill: #ab47bc; }
-  .label-analog { fill: #66bb6a; }
-  .label-gpio { fill: #ff8a65; }
-  .label-wifi { fill: #26c6da; }
-
-  .legend {
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    background: #16213e;
-    border: 1px solid #333;
-    border-radius: 8px;
-    padding: 12px 16px;
-    font-size: 12px;
-    line-height: 2;
-  }
-  .legend-item { display: flex; align-items: center; gap: 8px; }
-  .legend-line {
-    width: 30px; height: 3px; border-radius: 2px; display: inline-block;
-  }
-
-  .flow-arrow {
-    font-size: 18px;
-    color: #555;
-    position: absolute;
-  }
+  body { margin: 0; padding: 20px; background: #fff; font-family: 'Segoe UI', sans-serif; }
+  h1 { text-align: center; font-size: 20px; color: #222; margin-bottom: 2px; }
+  p.sub { text-align: center; font-size: 11px; color: #999; margin-bottom: 16px; }
+  svg { display: block; margin: 0 auto; }
 </style>
 </head>
 <body>
-
 <h1>Talkbot - Diagrama de Circuito</h1>
-<p class="subtitle">ESP32 + MAX9814 (mic) + MAX98357 (amp) + LEDs</p>
+<p class="sub">ESP32 DevKit v1 &bull; MAX9814 &bull; PAM8403 &bull; ST7789 &bull; 4 botones</p>
 
-<div class="diagram">
-  <svg viewBox="0 0 1100 720">
-    <!-- Power: Batteries → Switch → ESP32 -->
-    <path class="wire wire-power" d="M 170,70 L 300,70" />
-    <path class="wire wire-power" d="M 420,70 L 490,70 L 490,200" />
-    <!-- Power: ESP32 → MAX98357 VIN -->
-    <path class="wire wire-power" d="M 580,200 L 580,160 L 780,160 L 780,200" />
-    <text class="label label-power" x="660" y="152">3.3V</text>
-    <!-- Power: ESP32 → MAX9814 VDD -->
-    <path class="wire wire-power" d="M 490,200 L 490,160 L 260,160 L 260,200" />
-    <text class="label label-power" x="340" y="152">3.3V</text>
+<svg viewBox="0 0 1000 750" width="1000" height="750" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, sans-serif">
 
-    <!-- GND lines -->
-    <path class="wire wire-gnd" d="M 260,310 L 260,360 L 530,360" />
-    <text class="label" x="370" y="372" fill="#666">GND</text>
-    <path class="wire wire-gnd" d="M 780,310 L 780,360 L 570,360" />
-    <text class="label" x="660" y="372" fill="#666">GND</text>
+  <!-- ============================================================ -->
+  <!-- DEFINITIONS                                                   -->
+  <!-- ============================================================ -->
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#666"/>
+    </marker>
+  </defs>
 
-    <!-- Analog: MAX9814 OUT → ESP32 GPIO34 -->
-    <path class="wire wire-analog" d="M 310,260 L 440,260" />
-    <text class="label label-analog" x="345" y="252">OUT → GP34</text>
+  <!-- ============================================================ -->
+  <!-- ESP32 (center)                                                -->
+  <!-- ============================================================ -->
+  <rect x="350" y="200" width="280" height="200" rx="10" fill="#f0f6ff" stroke="#1565c0" stroke-width="2.5"/>
+  <text x="490" y="228" text-anchor="middle" font-size="17" font-weight="700" fill="#1565c0">ESP32 DevKit v1</text>
+  <text x="490" y="248" text-anchor="middle" font-size="10" fill="#888">Dual-core Xtensa LX6 @ 240 MHz</text>
+  <text x="490" y="262" text-anchor="middle" font-size="10" fill="#888">WiFi 802.11 · ADC · DAC · SPI</text>
 
-    <!-- I2S: ESP32 → MAX98357 -->
-    <path class="wire wire-i2s" d="M 660,240 L 730,240" />
-    <text class="label label-i2s" x="665" y="232">GP26 → BCLK</text>
-    <path class="wire wire-i2s" d="M 660,260 L 730,260" />
-    <text class="label label-i2s" x="665" y="272">GP25 → LRC</text>
-    <path class="wire wire-i2s" d="M 660,280 L 730,280" />
-    <text class="label label-i2s" x="665" y="292">GP22 → DIN</text>
+  <!-- ESP32 Left pins -->
+  <text x="360" y="295" font-size="9.5" font-family="Consolas" fill="#2e7d32">GPIO34 (ADC) ◄──</text>
+  <text x="360" y="315" font-size="9.5" font-family="Consolas" fill="#ef6c00">GPIO27 (PTT) ◄──</text>
+  <text x="360" y="335" font-size="9.5" font-family="Consolas" fill="#ef6c00">GPIO32 (V+)  ◄──</text>
+  <text x="360" y="355" font-size="9.5" font-family="Consolas" fill="#ef6c00">GPIO33 (V-)  ◄──</text>
+  <text x="360" y="375" font-size="9.5" font-family="Consolas" fill="#ef6c00">GPIO13 (Scr) ◄──</text>
 
-    <!-- Speaker: MAX98357 → Speaker -->
-    <path class="wire wire-speaker" d="M 830,260 L 950,260" />
-    <text class="label" x="870" y="252" fill="#ef5350">+/−</text>
+  <!-- ESP32 Right pins -->
+  <text x="530" y="295" font-size="9.5" font-family="Consolas" fill="#7b1fa2">──► GPIO25 (DAC1)</text>
+  <text x="530" y="320" font-size="9.5" font-family="Consolas" fill="#0277bd">──► GPIO23 (MOSI)</text>
+  <text x="530" y="336" font-size="9.5" font-family="Consolas" fill="#0277bd">──► GPIO18 (SCK)</text>
+  <text x="530" y="352" font-size="9.5" font-family="Consolas" fill="#0277bd">──► GPIO2  (DC)</text>
+  <text x="530" y="368" font-size="9.5" font-family="Consolas" fill="#0277bd">──► GPIO4  (RST)</text>
+  <text x="530" y="384" font-size="9.5" font-family="Consolas" fill="#0277bd">──► GPIO15 (BLK)</text>
 
-    <!-- LEDs: ESP32 → LEDs -->
-    <path class="wire wire-led" d="M 500,380 L 500,460 L 350,460" />
-    <text class="label" x="390" y="452" fill="#fdd835">GP15</text>
-    <path class="wire wire-led" d="M 530,380 L 530,500 L 350,500" />
-    <text class="label" x="390" y="492" fill="#fdd835">GP2</text>
-    <path class="wire wire-led" d="M 560,380 L 560,540 L 350,540" />
-    <text class="label" x="390" y="532" fill="#fdd835">GP4</text>
+  <!-- ============================================================ -->
+  <!-- MAX9814 (left top)                                            -->
+  <!-- ============================================================ -->
+  <rect x="50" y="245" width="150" height="75" rx="8" fill="#f0fff0" stroke="#2e7d32" stroke-width="2"/>
+  <text x="125" y="270" text-anchor="middle" font-size="14" font-weight="700" fill="#2e7d32">MAX9814</text>
+  <text x="125" y="286" text-anchor="middle" font-size="10" fill="#777">Micrófono con AGC</text>
+  <text x="125" y="302" text-anchor="middle" font-size="9" font-family="Consolas" fill="#2e7d32">VDD · GND · OUT</text>
 
-    <!-- LED Switch → ESP32 -->
-    <path class="wire wire-gpio" d="M 600,380 L 600,500 L 730,500" />
-    <text class="label label-gpio" x="620" y="492">GP33</text>
+  <!-- Wire: MAX9814 OUT → ESP32 GPIO34 -->
+  <line x1="200" y1="290" x2="350" y2="290" stroke="#2e7d32" stroke-width="2.5"/>
+  <circle cx="200" cy="290" r="3" fill="#2e7d32"/>
+  <circle cx="350" cy="290" r="3" fill="#2e7d32"/>
 
-    <!-- WiFi to Backend (dashed) -->
-    <path class="wire wire-wifi" d="M 550,380 L 550,620 L 650,620" />
-    <text class="label label-wifi" x="555" y="610">WiFi</text>
-  </svg>
+  <!-- Wire: 3.3V → MAX9814 -->
+  <line x1="200" y1="258" x2="240" y2="258" stroke="#e65100" stroke-width="1.5"/>
+  <line x1="240" y1="258" x2="240" y2="210" stroke="#e65100" stroke-width="1.5"/>
+  <line x1="240" y1="210" x2="370" y2="210" stroke="#e65100" stroke-width="1.5"/>
+  <circle cx="200" cy="258" r="2.5" fill="#e65100"/>
+  <text x="245" y="224" font-size="9" fill="#e65100" font-weight="600">3.3V</text>
 
-  <!-- Batteries -->
-  <div class="component battery" style="left: 40px; top: 45px;">
-    <div class="name">Pilas</div>
-    <div class="detail">4x AA (6V)<br>o PowerBank 5V</div>
-  </div>
+  <!-- Wire: GND MAX9814 -->
+  <line x1="200" y1="308" x2="230" y2="308" stroke="#999" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <line x1="230" y1="308" x2="230" y2="340" stroke="#999" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="215" y="352" font-size="8" fill="#999">GND</text>
 
-  <!-- Power Switch -->
-  <div class="component switch" style="left: 300px; top: 45px;">
-    <div class="name">Switch ON/OFF</div>
-    <div class="detail">Corta alimentaci&oacute;n</div>
-  </div>
+  <!-- ============================================================ -->
+  <!-- BUTTONS (left bottom)                                         -->
+  <!-- ============================================================ -->
+  <!-- PTT -->
+  <rect x="70" y="410" width="130" height="36" rx="6" fill="#fff8f0" stroke="#ef6c00" stroke-width="2"/>
+  <text x="135" y="425" text-anchor="middle" font-size="11" font-weight="700" fill="#ef6c00">Botón PTT</text>
+  <text x="135" y="439" text-anchor="middle" font-size="9" fill="#999">Push-to-Talk</text>
+  <line x1="200" y1="428" x2="350" y2="311" stroke="#ef6c00" stroke-width="2"/>
+  <circle cx="200" cy="428" r="3" fill="#ef6c00"/>
+  <circle cx="350" cy="311" r="3" fill="#ef6c00"/>
 
-  <!-- MAX9814 Mic -->
-  <div class="component mic" style="left: 170px; top: 200px;">
-    <div class="name">MAX9814</div>
-    <div class="detail">Micr&oacute;fono AGC</div>
-    <div class="pins">VDD | GND | OUT</div>
-  </div>
+  <!-- Vol+ -->
+  <rect x="70" y="456" width="130" height="36" rx="6" fill="#fff8f0" stroke="#ef6c00" stroke-width="2"/>
+  <text x="135" y="471" text-anchor="middle" font-size="11" font-weight="700" fill="#ef6c00">Botón Vol+</text>
+  <text x="135" y="485" text-anchor="middle" font-size="9" fill="#999">Volumen +10%</text>
+  <line x1="200" y1="474" x2="350" y2="331" stroke="#ef6c00" stroke-width="2"/>
+  <circle cx="200" cy="474" r="3" fill="#ef6c00"/>
+  <circle cx="350" cy="331" r="3" fill="#ef6c00"/>
 
-  <!-- ESP32 -->
-  <div class="component esp32" style="left: 440px; top: 200px;">
-    <div class="name">ESP32</div>
-    <div class="detail">
-      Cerebro del sistema<br>
-      WiFi + ADC + I2S
-    </div>
-    <div class="pins">
-      IN: GP34 (mic)<br>
-      OUT: GP26,25,22 (I2S)<br>
-      OUT: GP15,2,4 (LEDs)<br>
-      IN: GP33 (switch)
-    </div>
-  </div>
+  <!-- Vol- -->
+  <rect x="70" y="502" width="130" height="36" rx="6" fill="#fff8f0" stroke="#ef6c00" stroke-width="2"/>
+  <text x="135" y="517" text-anchor="middle" font-size="11" font-weight="700" fill="#ef6c00">Botón Vol−</text>
+  <text x="135" y="531" text-anchor="middle" font-size="9" fill="#999">Volumen −10%</text>
+  <line x1="200" y1="520" x2="350" y2="351" stroke="#ef6c00" stroke-width="2"/>
+  <circle cx="200" cy="520" r="3" fill="#ef6c00"/>
+  <circle cx="350" cy="351" r="3" fill="#ef6c00"/>
 
-  <!-- MAX98357 Amp -->
-  <div class="component amp" style="left: 730px; top: 200px;">
-    <div class="name">MAX98357</div>
-    <div class="detail">Amplificador I2S</div>
-    <div class="pins">VIN | GND | BCLK<br>LRC | DIN | + | −</div>
-  </div>
+  <!-- Screen -->
+  <rect x="70" y="548" width="130" height="36" rx="6" fill="#fff8f0" stroke="#ef6c00" stroke-width="2"/>
+  <text x="135" y="563" text-anchor="middle" font-size="11" font-weight="700" fill="#ef6c00">Botón Pantalla</text>
+  <text x="135" y="577" text-anchor="middle" font-size="9" fill="#999">Navegar screens</text>
+  <line x1="200" y1="566" x2="350" y2="371" stroke="#ef6c00" stroke-width="2"/>
+  <circle cx="200" cy="566" r="3" fill="#ef6c00"/>
+  <circle cx="350" cy="371" r="3" fill="#ef6c00"/>
+
+  <!-- Buttons GND common -->
+  <line x1="70" y1="446" x2="55" y2="446" stroke="#999" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <line x1="70" y1="492" x2="55" y2="492" stroke="#999" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <line x1="70" y1="538" x2="55" y2="538" stroke="#999" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <line x1="70" y1="584" x2="55" y2="584" stroke="#999" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <line x1="55" y1="446" x2="55" y2="600" stroke="#999" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="35" y="516" font-size="8" fill="#999" transform="rotate(-90,35,516)">GND</text>
+
+  <!-- ============================================================ -->
+  <!-- DAC OUTPUT PATH: ESP32 → R 10KΩ → PAM8403 → Parlante         -->
+  <!-- ============================================================ -->
+
+  <!-- Wire: ESP32 GPIO25 → junction point -->
+  <line x1="630" y1="290" x2="700" y2="290" stroke="#7b1fa2" stroke-width="2.5"/>
+  <circle cx="630" cy="290" r="3" fill="#7b1fa2"/>
+  <circle cx="700" cy="290" r="4" fill="#7b1fa2"/>
+
+  <!-- Junction → down to Resistor 10KΩ -->
+  <line x1="700" y1="290" x2="700" y2="330" stroke="#795548" stroke-width="2"/>
+  <rect x="685" y="330" width="30" height="44" rx="4" fill="#faf5f0" stroke="#795548" stroke-width="1.5"/>
+  <text x="700" y="348" text-anchor="middle" font-size="9" font-weight="700" fill="#795548">10K</text>
+  <text x="700" y="362" text-anchor="middle" font-size="8" fill="#795548">Ω</text>
+  <line x1="700" y1="374" x2="700" y2="395" stroke="#999" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="710" y="392" font-size="8" fill="#999">GND</text>
+  <!-- GND symbol -->
+  <line x1="690" y1="395" x2="710" y2="395" stroke="#999" stroke-width="2"/>
+  <line x1="693" y1="400" x2="707" y2="400" stroke="#999" stroke-width="1.5"/>
+  <line x1="696" y1="405" x2="704" y2="405" stroke="#999" stroke-width="1"/>
+
+  <!-- Junction → right to PAM8403 -->
+  <line x1="700" y1="290" x2="770" y2="290" stroke="#7b1fa2" stroke-width="2.5"/>
+  <circle cx="770" cy="290" r="3" fill="#7b1fa2"/>
+
+  <!-- PAM8403 -->
+  <rect x="770" y="250" width="120" height="85" rx="8" fill="#f8f0ff" stroke="#7b1fa2" stroke-width="2"/>
+  <text x="830" y="275" text-anchor="middle" font-size="14" font-weight="700" fill="#7b1fa2">PAM8403</text>
+  <text x="830" y="291" text-anchor="middle" font-size="10" fill="#777">Amplificador</text>
+  <text x="830" y="305" text-anchor="middle" font-size="10" fill="#777">Clase D · 3W</text>
+  <text x="830" y="322" text-anchor="middle" font-size="9" font-family="Consolas" fill="#7b1fa2">IN · VCC · GND · OUT</text>
+
+  <!-- PAM8403 → Speaker -->
+  <line x1="890" y1="290" x2="920" y2="290" stroke="#c62828" stroke-width="2.5"/>
+  <circle cx="890" cy="290" r="3" fill="#c62828"/>
+  <circle cx="920" cy="290" r="3" fill="#c62828"/>
 
   <!-- Speaker -->
-  <div class="component speaker" style="left: 930px; top: 230px;">
-    <div class="name">Parlante</div>
-    <div class="detail">8&#8486; 3W</div>
-  </div>
+  <rect x="920" y="265" width="60" height="50" rx="8" fill="#fff5f5" stroke="#c62828" stroke-width="2"/>
+  <text x="950" y="286" text-anchor="middle" font-size="20">&#128266;</text>
+  <text x="950" y="305" text-anchor="middle" font-size="10" font-weight="600" fill="#c62828">8Ω</text>
 
-  <!-- LEDs -->
-  <div class="component led" style="left: 170px; top: 440px;">
-    <div class="name">LEDs</div>
-    <div class="detail">
-      <span style="color:#ef5350">&#9679; Rojo</span> → Hablando<br>
-      <span style="color:#fdd835">&#9679; Amarillo</span> → Procesando<br>
-      <span style="color:#66bb6a">&#9679; Verde</span> → Escuchando
-    </div>
-  </div>
+  <!-- Portapilas → PAM8403 (VCC) -->
+  <rect x="790" y="140" width="80" height="55" rx="8" fill="#fff8f0" stroke="#e65100" stroke-width="2"/>
+  <text x="830" y="162" text-anchor="middle" font-size="12" font-weight="700" fill="#e65100">Portapilas</text>
+  <text x="830" y="178" text-anchor="middle" font-size="10" fill="#777">2× AA (3V)</text>
+  <line x1="830" y1="195" x2="830" y2="250" stroke="#e65100" stroke-width="2"/>
+  <circle cx="830" cy="195" r="3" fill="#e65100"/>
+  <circle cx="830" cy="250" r="3" fill="#e65100"/>
+  <text x="838" y="228" font-size="9" fill="#e65100" font-weight="600">3V</text>
 
-  <!-- LED Switch -->
-  <div class="component ledswitch" style="left: 730px; top: 470px;">
-    <div class="name">Switch LEDs</div>
-    <div class="detail">ON/OFF LEDs<br>GP33 → GND</div>
-  </div>
+  <!-- PAM8403 GND -->
+  <line x1="830" y1="335" x2="830" y2="355" stroke="#999" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <line x1="820" y1="355" x2="840" y2="355" stroke="#999" stroke-width="2"/>
+  <line x1="823" y1="360" x2="837" y2="360" stroke="#999" stroke-width="1.5"/>
+  <line x1="826" y1="365" x2="834" y2="365" stroke="#999" stroke-width="1"/>
 
-  <!-- Backend (WiFi) -->
-  <div class="component backend" style="left: 650px; top: 590px;">
-    <div class="name">Backend (PC)</div>
-    <div class="detail">
-      Node.js :8000<br>
-      Transcribe → Claude → Polly
-    </div>
-  </div>
+  <!-- ============================================================ -->
+  <!-- ST7789 DISPLAY (right bottom)                                 -->
+  <!-- ============================================================ -->
+  <rect x="770" y="440" width="140" height="95" rx="8" fill="#f0f8ff" stroke="#0277bd" stroke-width="2"/>
+  <text x="840" y="465" text-anchor="middle" font-size="14" font-weight="700" fill="#0277bd">ST7789</text>
+  <text x="840" y="481" text-anchor="middle" font-size="10" fill="#777">TFT 240×240 px</text>
+  <text x="840" y="495" text-anchor="middle" font-size="10" fill="#777">SPI @ 40 MHz</text>
+  <text x="840" y="515" text-anchor="middle" font-size="9" font-family="Consolas" fill="#0277bd">MOSI·SCK·DC·RST·BLK</text>
+  <text x="840" y="527" text-anchor="middle" font-size="9" font-family="Consolas" fill="#0277bd">VCC · GND</text>
 
-  <!-- Legend -->
-  <div class="legend">
-    <div class="legend-item"><span class="legend-line" style="background:#f5a623"></span> Alimentaci&oacute;n (VIN/3.3V)</div>
-    <div class="legend-item"><span class="legend-line" style="background:#666; opacity:0.6"></span> GND</div>
-    <div class="legend-item"><span class="legend-line" style="background:#66bb6a"></span> Analog (mic → ADC)</div>
-    <div class="legend-item"><span class="legend-line" style="background:#ab47bc"></span> I2S (audio digital)</div>
-    <div class="legend-item"><span class="legend-line" style="background:#fdd835"></span> GPIO (LEDs)</div>
-    <div class="legend-item"><span class="legend-line" style="background:#ff8a65"></span> GPIO (switch)</div>
-    <div class="legend-item"><span class="legend-line" style="background:#26c6da; border-top: 2px dashed #26c6da; height:0"></span> WiFi (inal&aacute;mbrico)</div>
-  </div>
-</div>
+  <!-- SPI wires: ESP32 right → ST7789 left -->
+  <line x1="630" y1="316" x2="660" y2="316" stroke="#0277bd" stroke-width="2"/>
+  <line x1="660" y1="316" x2="660" y2="460" stroke="#0277bd" stroke-width="2"/>
+  <line x1="660" y1="460" x2="770" y2="460" stroke="#0277bd" stroke-width="2"/>
+  <circle cx="630" cy="316" r="3" fill="#0277bd"/>
+  <circle cx="770" cy="460" r="3" fill="#0277bd"/>
+  <text x="668" y="456" font-size="8" fill="#0277bd">MOSI</text>
 
+  <line x1="630" y1="332" x2="648" y2="332" stroke="#0277bd" stroke-width="2"/>
+  <line x1="648" y1="332" x2="648" y2="473" stroke="#0277bd" stroke-width="2"/>
+  <line x1="648" y1="473" x2="770" y2="473" stroke="#0277bd" stroke-width="2"/>
+  <circle cx="630" cy="332" r="3" fill="#0277bd"/>
+  <circle cx="770" cy="473" r="3" fill="#0277bd"/>
+  <text x="668" y="470" font-size="8" fill="#0277bd">SCK</text>
+
+  <line x1="630" y1="348" x2="636" y2="348" stroke="#0277bd" stroke-width="2"/>
+  <line x1="636" y1="348" x2="636" y2="486" stroke="#0277bd" stroke-width="2"/>
+  <line x1="636" y1="486" x2="770" y2="486" stroke="#0277bd" stroke-width="2"/>
+  <circle cx="630" cy="348" r="3" fill="#0277bd"/>
+  <circle cx="770" cy="486" r="3" fill="#0277bd"/>
+  <text x="668" y="483" font-size="8" fill="#0277bd">DC</text>
+
+  <line x1="630" y1="364" x2="624" y2="364" stroke="#0277bd" stroke-width="2"/>
+  <line x1="624" y1="364" x2="624" y2="499" stroke="#0277bd" stroke-width="2"/>
+  <line x1="624" y1="499" x2="770" y2="499" stroke="#0277bd" stroke-width="2"/>
+  <circle cx="630" cy="364" r="3" fill="#0277bd"/>
+  <circle cx="770" cy="499" r="3" fill="#0277bd"/>
+  <text x="668" y="496" font-size="8" fill="#0277bd">RST</text>
+
+  <line x1="630" y1="380" x2="612" y2="380" stroke="#0277bd" stroke-width="2"/>
+  <line x1="612" y1="380" x2="612" y2="512" stroke="#0277bd" stroke-width="2"/>
+  <line x1="612" y1="512" x2="770" y2="512" stroke="#0277bd" stroke-width="2"/>
+  <circle cx="630" cy="380" r="3" fill="#0277bd"/>
+  <circle cx="770" cy="512" r="3" fill="#0277bd"/>
+  <text x="668" y="509" font-size="8" fill="#0277bd">BLK</text>
+
+  <!-- TFT 3.3V -->
+  <line x1="770" y1="448" x2="740" y2="448" stroke="#e65100" stroke-width="1.5"/>
+  <line x1="740" y1="448" x2="740" y2="210" stroke="#e65100" stroke-width="1.5"/>
+  <line x1="740" y1="210" x2="630" y2="210" stroke="#e65100" stroke-width="1.5"/>
+  <text x="745" y="430" font-size="9" fill="#e65100" font-weight="600">3.3V</text>
+
+  <!-- TFT GND -->
+  <line x1="910" y1="488" x2="930" y2="488" stroke="#999" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <line x1="930" y1="488" x2="930" y2="510" stroke="#999" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <line x1="920" y1="510" x2="940" y2="510" stroke="#999" stroke-width="2"/>
+  <line x1="923" y1="515" x2="937" y2="515" stroke="#999" stroke-width="1.5"/>
+  <line x1="926" y1="520" x2="934" y2="520" stroke="#999" stroke-width="1"/>
+
+  <!-- ============================================================ -->
+  <!-- BACKEND (WiFi - bottom center)                                -->
+  <!-- ============================================================ -->
+  <rect x="380" y="620" width="220" height="60" rx="8" fill="#f0fffe" stroke="#00838f" stroke-width="2" stroke-dasharray="6 3"/>
+  <text x="490" y="644" text-anchor="middle" font-size="13" font-weight="700" fill="#00838f">Backend (PC)</text>
+  <text x="490" y="662" text-anchor="middle" font-size="10" fill="#777">Node.js :8000 · Transcribe → Claude → Polly</text>
+
+  <!-- WiFi: ESP32 → Backend -->
+  <line x1="490" y1="400" x2="490" y2="620" stroke="#00838f" stroke-width="2" stroke-dasharray="8 4"/>
+  <circle cx="490" cy="400" r="3" fill="#00838f"/>
+  <circle cx="490" cy="620" r="3" fill="#00838f"/>
+  <text x="498" y="520" font-size="10" fill="#00838f" font-weight="600">WiFi</text>
+  <text x="498" y="534" font-size="8" fill="#00838f">802.11</text>
+
+  <!-- ============================================================ -->
+  <!-- LEGEND (bottom right)                                         -->
+  <!-- ============================================================ -->
+  <rect x="770" y="590" width="170" height="145" rx="6" fill="#fff" stroke="#ddd" stroke-width="1"/>
+  <text x="855" y="610" text-anchor="middle" font-size="10" font-weight="700" fill="#555">Leyenda</text>
+
+  <line x1="785" y1="623" x2="815" y2="623" stroke="#e65100" stroke-width="2.5"/>
+  <text x="822" y="627" font-size="9" fill="#555">Alimentación (3.3V / 3V)</text>
+
+  <line x1="785" y1="641" x2="815" y2="641" stroke="#999" stroke-width="2" stroke-dasharray="4 3"/>
+  <text x="822" y="645" font-size="9" fill="#555">GND</text>
+
+  <line x1="785" y1="659" x2="815" y2="659" stroke="#2e7d32" stroke-width="2.5"/>
+  <text x="822" y="663" font-size="9" fill="#555">Analógico (micrófono)</text>
+
+  <line x1="785" y1="677" x2="815" y2="677" stroke="#7b1fa2" stroke-width="2.5"/>
+  <text x="822" y="681" font-size="9" fill="#555">DAC (audio salida)</text>
+
+  <line x1="785" y1="695" x2="815" y2="695" stroke="#0277bd" stroke-width="2.5"/>
+  <text x="822" y="699" font-size="9" fill="#555">SPI (display)</text>
+
+  <line x1="785" y1="713" x2="815" y2="713" stroke="#ef6c00" stroke-width="2.5"/>
+  <text x="822" y="717" font-size="9" fill="#555">GPIO (botones)</text>
+
+  <line x1="785" y1="731" x2="815" y2="731" stroke="#00838f" stroke-width="2" stroke-dasharray="8 4"/>
+  <text x="822" y="735" font-size="9" fill="#555">WiFi (inalámbrico)</text>
+
+</svg>
 </body>
 </html>
