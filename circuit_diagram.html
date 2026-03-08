@@ -4,192 +4,56 @@
 <meta charset="UTF-8">
 <title>Talkbot - Diagrama de Circuito</title>
 <style>
-  body { margin: 0; padding: 20px; background: #fff; font-family: 'Segoe UI', sans-serif; }
-  h1 { text-align: center; font-size: 20px; color: #222; margin-bottom: 2px; }
-  p.sub { text-align: center; font-size: 11px; color: #999; margin-bottom: 16px; }
-  svg { display: block; margin: 0 auto; }
+  body { background: #fff; font-family: 'Segoe UI', sans-serif; padding: 20px; text-align: center; }
+  h1 { font-size: 20px; margin-bottom: 4px; }
+  .sub { color: #666; font-size: 12px; margin-bottom: 16px; }
 </style>
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'default',
+    flowchart: { curve: 'basis', padding: 15, nodeSpacing: 30, rankSpacing: 50 },
+    securityLevel: 'loose'
+  });
+</script>
 </head>
 <body>
 <h1>Talkbot - Diagrama de Circuito</h1>
-<p class="sub">ESP32 DevKit v1 &bull; MAX9814 &bull; PAM8403 &bull; ST7789 &bull; 4 botones</p>
+<p class="sub">Conexiones electricas del prototipo ESP32</p>
 
-<svg viewBox="0 0 1000 750" width="1000" height="750" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, sans-serif">
+<pre class="mermaid">
+graph TD
+    USB["USB 5V"]
 
-  <!-- ============================================================ -->
-  <!-- DEFINITIONS                                                   -->
-  <!-- ============================================================ -->
-  <defs>
-    <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-      <path d="M0,0 L8,3 L0,6 Z" fill="#666"/>
-    </marker>
-  </defs>
+    subgraph MCU [" ESP32 DevKit v1 "]
+        ESP["Dual-core 240 MHz<br/>WiFi - ADC - DAC - SPI"]
+    end
 
-  <!-- ============================================================ -->
-  <!-- ESP32 (center)                                                -->
-  <!-- ============================================================ -->
-  <rect x="350" y="200" width="280" height="200" rx="10" fill="#f0f6ff" stroke="#1565c0" stroke-width="2.5"/>
-  <text x="490" y="228" text-anchor="middle" font-size="17" font-weight="700" fill="#1565c0">ESP32 DevKit v1</text>
-  <text x="490" y="248" text-anchor="middle" font-size="10" fill="#888">Dual-core Xtensa LX6 @ 240 MHz</text>
-  <text x="490" y="262" text-anchor="middle" font-size="10" fill="#888">WiFi 802.11 · ADC · DAC · SPI</text>
+    subgraph AUDIO [" Audio "]
+        MIC["MAX9814<br/>Microfono AGC"]
+        JACK["Jack 3.5mm<br/>PJ-307"]
+        SPK["Parlante 3W"]
+        R10K["R 10K Pulldown"]
+    end
 
-  <!-- ESP32 Left pins -->
-  <text x="360" y="295" font-size="9.5" font-family="Consolas" fill="#2e7d32">GPIO34 (ADC) ◄──</text>
-  <text x="360" y="315" font-size="9.5" font-family="Consolas" fill="#ef6c00">GPIO27 (PTT) ◄──</text>
-  <text x="360" y="335" font-size="9.5" font-family="Consolas" fill="#ef6c00">GPIO32 (V+)  ◄──</text>
-  <text x="360" y="355" font-size="9.5" font-family="Consolas" fill="#ef6c00">GPIO33 (V-)  ◄──</text>
-  <text x="360" y="375" font-size="9.5" font-family="Consolas" fill="#ef6c00">GPIO13 (Scr) ◄──</text>
+    subgraph DISP [" Display "]
+        TFT["ILI9341<br/>TFT 240x320<br/>HSPI 40 MHz"]
+    end
 
-  <!-- ESP32 Right pins -->
-  <text x="530" y="295" font-size="9.5" font-family="Consolas" fill="#7b1fa2">──► GPIO25 (DAC1)</text>
-  <text x="530" y="320" font-size="9.5" font-family="Consolas" fill="#0277bd">──► GPIO23 (MOSI)</text>
-  <text x="530" y="336" font-size="9.5" font-family="Consolas" fill="#0277bd">──► GPIO18 (SCK)</text>
-  <text x="530" y="352" font-size="9.5" font-family="Consolas" fill="#0277bd">──► GPIO2  (DC)</text>
-  <text x="530" y="368" font-size="9.5" font-family="Consolas" fill="#0277bd">──► GPIO4  (RST)</text>
-  <text x="530" y="384" font-size="9.5" font-family="Consolas" fill="#0277bd">──► GPIO15 (BLK)</text>
+    subgraph BTNS [" Botones "]
+        BTN["PTT - GPIO27<br/>Vol+ - GPIO14<br/>Vol- - GPIO12<br/>Screen - GPIO13<br/>INPUT_PULLUP"]
+    end
 
-  <!-- ============================================================ -->
-  <!-- MAX9814 (left top)                                            -->
-  <!-- ============================================================ -->
-  <rect x="50" y="245" width="150" height="75" rx="8" fill="#f0fff0" stroke="#2e7d32" stroke-width="2"/>
-  <text x="125" y="270" text-anchor="middle" font-size="14" font-weight="700" fill="#2e7d32">MAX9814</text>
-  <text x="125" y="286" text-anchor="middle" font-size="10" fill="#777">Micrófono con AGC</text>
-  <text x="125" y="302" text-anchor="middle" font-size="9" font-family="Consolas" fill="#2e7d32">VDD · GND · OUT</text>
-
-  <!-- Wire: MAX9814 OUT → ESP32 GPIO34 -->
-  <line x1="200" y1="290" x2="350" y2="290" stroke="#2e7d32" stroke-width="2.5"/>
-  <circle cx="200" cy="290" r="3" fill="#2e7d32"/>
-  <circle cx="350" cy="290" r="3" fill="#2e7d32"/>
-
-  <!-- Wire: 3.3V → MAX9814 -->
-  <line x1="200" y1="258" x2="240" y2="258" stroke="#e65100" stroke-width="1.5"/>
-  <line x1="240" y1="258" x2="240" y2="210" stroke="#e65100" stroke-width="1.5"/>
-  <line x1="240" y1="210" x2="370" y2="210" stroke="#e65100" stroke-width="1.5"/>
-  <circle cx="200" cy="258" r="2.5" fill="#e65100"/>
-  <text x="245" y="224" font-size="9" fill="#e65100" font-weight="600">3.3V</text>
-
-  <!-- Wire: GND MAX9814 -->
-  <line x1="200" y1="308" x2="230" y2="308" stroke="#999" stroke-width="1.5" stroke-dasharray="4 3"/>
-  <line x1="230" y1="308" x2="230" y2="340" stroke="#999" stroke-width="1.5" stroke-dasharray="4 3"/>
-  <text x="215" y="352" font-size="8" fill="#999">GND</text>
-
-  <!-- ============================================================ -->
-  <!-- BUTTONS (left bottom)                                         -->
-  <!-- ============================================================ -->
-  <!-- PTT -->
-  <rect x="70" y="410" width="130" height="36" rx="6" fill="#fff8f0" stroke="#ef6c00" stroke-width="2"/>
-  <text x="135" y="425" text-anchor="middle" font-size="11" font-weight="700" fill="#ef6c00">Botón PTT</text>
-  <text x="135" y="439" text-anchor="middle" font-size="9" fill="#999">Push-to-Talk</text>
-  <line x1="200" y1="428" x2="350" y2="311" stroke="#ef6c00" stroke-width="2"/>
-  <circle cx="200" cy="428" r="3" fill="#ef6c00"/>
-  <circle cx="350" cy="311" r="3" fill="#ef6c00"/>
-
-  <!-- Vol+ -->
-  <rect x="70" y="456" width="130" height="36" rx="6" fill="#fff8f0" stroke="#ef6c00" stroke-width="2"/>
-  <text x="135" y="471" text-anchor="middle" font-size="11" font-weight="700" fill="#ef6c00">Botón Vol+</text>
-  <text x="135" y="485" text-anchor="middle" font-size="9" fill="#999">Volumen +10%</text>
-  <line x1="200" y1="474" x2="350" y2="331" stroke="#ef6c00" stroke-width="2"/>
-  <circle cx="200" cy="474" r="3" fill="#ef6c00"/>
-  <circle cx="350" cy="331" r="3" fill="#ef6c00"/>
-
-  <!-- Vol- -->
-  <rect x="70" y="502" width="130" height="36" rx="6" fill="#fff8f0" stroke="#ef6c00" stroke-width="2"/>
-  <text x="135" y="517" text-anchor="middle" font-size="11" font-weight="700" fill="#ef6c00">Botón Vol−</text>
-  <text x="135" y="531" text-anchor="middle" font-size="9" fill="#999">Volumen −10%</text>
-  <line x1="200" y1="520" x2="350" y2="351" stroke="#ef6c00" stroke-width="2"/>
-  <circle cx="200" cy="520" r="3" fill="#ef6c00"/>
-  <circle cx="350" cy="351" r="3" fill="#ef6c00"/>
-
-  <!-- Screen -->
-  <rect x="70" y="548" width="130" height="36" rx="6" fill="#fff8f0" stroke="#ef6c00" stroke-width="2"/>
-  <text x="135" y="563" text-anchor="middle" font-size="11" font-weight="700" fill="#ef6c00">Botón Pantalla</text>
-  <text x="135" y="577" text-anchor="middle" font-size="9" fill="#999">Navegar screens</text>
-  <line x1="200" y1="566" x2="350" y2="371" stroke="#ef6c00" stroke-width="2"/>
-  <circle cx="200" cy="566" r="3" fill="#ef6c00"/>
-  <circle cx="350" cy="371" r="3" fill="#ef6c00"/>
-
-  <!-- Buttons GND common -->
-  <line x1="70" y1="446" x2="55" y2="446" stroke="#999" stroke-width="1.5" stroke-dasharray="4 3"/>
-  <line x1="70" y1="492" x2="55" y2="492" stroke="#999" stroke-width="1.5" stroke-dasharray="4 3"/>
-  <line x1="70" y1="538" x2="55" y2="538" stroke="#999" stroke-width="1.5" stroke-dasharray="4 3"/>
-  <line x1="70" y1="584" x2="55" y2="584" stroke="#999" stroke-width="1.5" stroke-dasharray="4 3"/>
-  <line x1="55" y1="446" x2="55" y2="600" stroke="#999" stroke-width="1.5" stroke-dasharray="4 3"/>
-  <text x="35" y="516" font-size="8" fill="#999" transform="rotate(-90,35,516)">GND</text>
-
-  <!-- ============================================================ -->
-  <!-- DAC OUTPUT PATH: ESP32 → R 10KΩ → PAM8403 → Parlante         -->
-  <!-- ============================================================ -->
-
-  <!-- Wire: ESP32 GPIO25 → junction point -->
-  <line x1="630" y1="290" x2="700" y2="290" stroke="#7b1fa2" stroke-width="2.5"/>
-  <circle cx="630" cy="290" r="3" fill="#7b1fa2"/>
-  <circle cx="700" cy="290" r="4" fill="#7b1fa2"/>
-
-  <!-- Junction → down to Resistor 10KΩ -->
-  <line x1="700" y1="290" x2="700" y2="330" stroke="#795548" stroke-width="2"/>
-  <rect x="685" y="330" width="30" height="44" rx="4" fill="#faf5f0" stroke="#795548" stroke-width="1.5"/>
-  <text x="700" y="348" text-anchor="middle" font-size="9" font-weight="700" fill="#795548">10K</text>
-  <text x="700" y="362" text-anchor="middle" font-size="8" fill="#795548">Ω</text>
-  <line x1="700" y1="374" x2="700" y2="395" stroke="#999" stroke-width="1.5" stroke-dasharray="4 3"/>
-  <text x="710" y="392" font-size="8" fill="#999">GND</text>
-  <!-- GND symbol -->
-  <line x1="690" y1="395" x2="710" y2="395" stroke="#999" stroke-width="2"/>
-  <line x1="693" y1="400" x2="707" y2="400" stroke="#999" stroke-width="1.5"/>
-  <line x1="696" y1="405" x2="704" y2="405" stroke="#999" stroke-width="1"/>
-
-  <!-- Junction → right to PAM8403 -->
-  <line x1="700" y1="290" x2="770" y2="290" stroke="#7b1fa2" stroke-width="2.5"/>
-  <circle cx="770" cy="290" r="3" fill="#7b1fa2"/>
-
-  <!-- PAM8403 -->
-  <rect x="770" y="250" width="120" height="85" rx="8" fill="#f8f0ff" stroke="#7b1fa2" stroke-width="2"/>
-  <text x="830" y="275" text-anchor="middle" font-size="14" font-weight="700" fill="#7b1fa2">PAM8403</text>
-  <text x="830" y="291" text-anchor="middle" font-size="10" fill="#777">Amplificador</text>
-  <text x="830" y="305" text-anchor="middle" font-size="10" fill="#777">Clase D · 3W</text>
-  <text x="830" y="322" text-anchor="middle" font-size="9" font-family="Consolas" fill="#7b1fa2">IN · VCC · GND · OUT</text>
-
-  <!-- PAM8403 → Speaker -->
-  <line x1="890" y1="290" x2="920" y2="290" stroke="#c62828" stroke-width="2.5"/>
-  <circle cx="890" cy="290" r="3" fill="#c62828"/>
-  <circle cx="920" cy="290" r="3" fill="#c62828"/>
-
-  <!-- Speaker -->
-  <rect x="920" y="265" width="60" height="50" rx="8" fill="#fff5f5" stroke="#c62828" stroke-width="2"/>
-  <text x="950" y="286" text-anchor="middle" font-size="20">&#128266;</text>
-  <text x="950" y="305" text-anchor="middle" font-size="10" font-weight="600" fill="#c62828">8Ω</text>
-
-  <!-- Portapilas → PAM8403 (VCC) -->
-  <rect x="790" y="140" width="80" height="55" rx="8" fill="#fff8f0" stroke="#e65100" stroke-width="2"/>
-  <text x="830" y="162" text-anchor="middle" font-size="12" font-weight="700" fill="#e65100">Portapilas</text>
-  <text x="830" y="178" text-anchor="middle" font-size="10" fill="#777">2× AA (3V)</text>
-  <line x1="830" y1="195" x2="830" y2="250" stroke="#e65100" stroke-width="2"/>
-  <circle cx="830" cy="195" r="3" fill="#e65100"/>
-  <circle cx="830" cy="250" r="3" fill="#e65100"/>
-  <text x="838" y="228" font-size="9" fill="#e65100" font-weight="600">3V</text>
-
-  <!-- PAM8403 GND -->
-  <line x1="830" y1="335" x2="830" y2="355" stroke="#999" stroke-width="1.5" stroke-dasharray="4 3"/>
-  <line x1="820" y1="355" x2="840" y2="355" stroke="#999" stroke-width="2"/>
-  <line x1="823" y1="360" x2="837" y2="360" stroke="#999" stroke-width="1.5"/>
-  <line x1="826" y1="365" x2="834" y2="365" stroke="#999" stroke-width="1"/>
-
-  <!-- ============================================================ -->
-  <!-- ST7789 DISPLAY (right bottom)                                 -->
-  <!-- ============================================================ -->
-  <rect x="770" y="440" width="140" height="95" rx="8" fill="#f0f8ff" stroke="#0277bd" stroke-width="2"/>
-  <text x="840" y="465" text-anchor="middle" font-size="14" font-weight="700" fill="#0277bd">ST7789</text>
-  <text x="840" y="481" text-anchor="middle" font-size="10" fill="#777">TFT 240×240 px</text>
-  <text x="840" y="495" text-anchor="middle" font-size="10" fill="#777">SPI @ 40 MHz</text>
-  <text x="840" y="515" text-anchor="middle" font-size="9" font-family="Consolas" fill="#0277bd">MOSI·SCK·DC·RST·BLK</text>
-  <text x="840" y="527" text-anchor="middle" font-size="9" font-family="Consolas" fill="#0277bd">VCC · GND</text>
-
-  <!-- SPI wires: ESP32 right → ST7789 left -->
-  <line x1="630" y1="316" x2="660" y2="316" stroke="#0277bd" stroke-width="2"/>
-  <line x1="660" y1="316" x2="660" y2="460" stroke="#0277bd" stroke-width="2"/>
-  <line x1="660" y1="460" x2="770" y2="460" stroke="#0277bd" stroke-width="2"/>
-  <circle cx="630" cy="316" r="3" fill="#0277bd"/>
-  <circle cx="770" cy="460" r="3" fill="#0277bd"/>
-  <text x="668" y="456" font-size="8" fill="#0277bd">MOSI</text>
+    USB -->|5V| ESP
+    MIC -->|"GPIO35 (ADC1_CH7)"| ESP
+    ESP -->|"GPIO25 (DAC1)"| JACK --> SPK
+    ESP -.->|GPIO25| R10K -.-> GND(GND)
+    ESP -->|"MOSI:23 SCK:18<br/>CS:5 DC:2<br/>RST:4 BL:15"| TFT
+    BTN -->|"27, 14, 12, 13"| ESP
+    ESP ---|3.3V| MIC
+    ESP ---|3.3V| TFT
+</pre>
 
   <line x1="630" y1="332" x2="648" y2="332" stroke="#0277bd" stroke-width="2"/>
   <line x1="648" y1="332" x2="648" y2="473" stroke="#0277bd" stroke-width="2"/>

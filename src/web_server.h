@@ -38,6 +38,7 @@ private:
   void _handleGetConfig();
   void _handleSetConfig();
   void _handleReboot();
+  void _handleWifiReset();
   void _handleNotFound();
 
   String _stateToString(TalkbotState state);

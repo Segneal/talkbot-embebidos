@@ -25,7 +25,7 @@ public:
   bool isEnabled() { return _enabled; }
   void setEnabled(bool enabled);
 
-  // Navegación entre pantallas
+  // Navegacion entre pantallas
   void nextScreen();
   void prevScreen();
   void setScreen(uint8_t screen);
@@ -38,9 +38,17 @@ public:
   void addConversation();  // Incrementa contador
   void setLatency(uint32_t ms);
 
+  // Getters para web API
+  float getPeakLevel() { return _peakLevel; }
+  uint32_t getConversationCount() { return _conversationCount; }
+  uint32_t getAvgLatency() { return _avgLatency; }
+  const String& getLastQuestion() { return _lastQuestion; }
+  const String& getLastAnswer() { return _lastAnswer; }
+  TalkbotState getState() { return _currentState; }
+
 private:
   TFT_eSPI _tft = TFT_eSPI(DISPLAY_WIDTH, DISPLAY_HEIGHT);
-  TFT_eSprite _spr = TFT_eSprite(&_tft);  // Sprite de línea para anti-flicker
+  TFT_eSprite _spr = TFT_eSprite(&_tft);  // Sprite de linea para anti-flicker
 
   bool _enabled = true;
   TalkbotState _currentState = STATE_IDLE;
@@ -72,8 +80,8 @@ private:
   void _drawScreen0_Status();    // Estado actual
   void _drawScreen1_Volume();    // Volumen
   void _drawScreen2_WiFi();      // WiFi info
-  void _drawScreen3_Conversation(); // Última conversación
-  void _drawScreen4_Stats();     // Estadísticas
+  void _drawScreen3_Conversation(); // Ultima conversacion
+  void _drawScreen4_Stats();     // Estadisticas
   void _drawScreen5_VU();        // VU Meter
 
   // Helpers

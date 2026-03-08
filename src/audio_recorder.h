@@ -5,10 +5,12 @@
 #include <driver/i2s.h>
 #include "config.h"
 
+typedef void (*PeakCallback)(float level);
+
 class AudioRecorder {
 public:
   bool begin();
-  void startRecording();
+  void startRecording(PeakCallback cb = nullptr);
   void stopRecording();
   bool isRecording() { return _recording; }
 

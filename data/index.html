@@ -12,6 +12,7 @@
 
     <div class="tabs">
       <button class="tab active" data-tab="bot">Bot</button>
+      <button class="tab" data-tab="display">Display</button>
       <button class="tab" data-tab="speaker">Speaker</button>
       <button class="tab" data-tab="red">Red</button>
     </div>
@@ -41,8 +42,21 @@
 
       <div class="card">
         <h2>Volumen</h2>
-        <input type="range" id="volume-slider" min="0" max="100" value="80">
+        <input type="range" id="volume-slider" min="0" max="100" step="10" value="80">
         <span id="volume-value">80%</span>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-display">
+      <div class="tft-frame">
+        <div class="tft-screen" id="tft-screen">
+          <!-- Rendered by JS -->
+        </div>
+        <div class="tft-nav">
+          <button class="tft-btn" id="tft-prev">&lt;</button>
+          <span class="tft-dots" id="tft-dots"></span>
+          <button class="tft-btn" id="tft-next">&gt;</button>
+        </div>
       </div>
     </div>
 
@@ -70,7 +84,8 @@
 
       <div class="card">
         <h2>Dispositivo</h2>
-        <button id="reboot-btn" class="btn btn-danger">Reiniciar Talkbot</button>
+        <button id="wifi-reset-btn" class="btn btn-danger">Cambiar WiFi</button>
+        <button id="reboot-btn" class="btn btn-danger" style="margin-top:8px">Reiniciar Talkbot</button>
       </div>
 
       <div class="card">

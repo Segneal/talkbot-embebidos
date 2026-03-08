@@ -1,6 +1,8 @@
 #include "web_server.h"
 #include <WiFi.h>
+#include <WiFiManager.h>
 #include <ArduinoJson.h>
+#include <ESPmDNS.h>
 
 void TalkbotWebServer::begin(DisplayController* display, AudioPlayer* player, TalkbotState* statePtr, ApiClient* api) {
   _display = display;
@@ -30,9 +32,15 @@ void TalkbotWebServer::begin(DisplayController* display, AudioPlayer* player, Ta
   _server.on("/api/config", HTTP_GET, [this]() { _handleGetConfig(); });
   _server.on("/api/config", HTTP_POST, [this]() { _handleSetConfig(); });
   _server.on("/api/reboot", HTTP_POST, [this]() { _handleReboot(); });
+  _server.on("/api/wifi-reset", HTTP_POST, [this]() { _handleWifiReset(); });
   _server.onNotFound([this]() { _handleNotFound(); });
 
   _server.begin();
+
+  if (MDNS.begin("talkbot")) {
+    MDNS.addService("http", "tcp", 80);
+    Serial.println("mDNS: talkbot.local");
+  }
   Serial.println("Web server iniciado en puerto 80");
 }
 
@@ -60,9 +68,16 @@ void TalkbotWebServer::_handleStatus() {
   doc["volume"] = _player->getVolume();
   doc["uptime"] = (millis() - _startTime) / 1000;
   doc["freeHeap"] = ESP.getFreeHeap();
+  doc["minHeap"] = ESP.getMinFreeHeap();
   doc["ip"] = WiFi.localIP().toString();
   doc["rssi"] = WiFi.RSSI();
+  doc["ssid"] = WiFi.SSID();
   doc["displayScreen"] = _display->getScreen();
+  doc["peakLevel"] = _display->getPeakLevel();
+  doc["conversations"] = _display->getConversationCount();
+  doc["avgLatency"] = _display->getAvgLatency();
+  doc["lastQuestion"] = _display->getLastQuestion();
+  doc["lastAnswer"] = _display->getLastAnswer();
 
   String response;
   serializeJson(doc, response);
@@ -164,6 +179,15 @@ void TalkbotWebServer::_handleSetConfig() {
 
 void TalkbotWebServer::_handleReboot() {
   _server.send(200, "application/json", "{\"ok\":true,\"message\":\"Reiniciando...\"}");
+  delay(500);
+  ESP.restart();
+}
+
+void TalkbotWebServer::_handleWifiReset() {
+  _server.send(200, "application/json", "{\"ok\":true,\"message\":\"Reseteando WiFi...\"}");
+  delay(500);
+  WiFiManager wm;
+  wm.resetSettings();
   delay(500);
   ESP.restart();
 }

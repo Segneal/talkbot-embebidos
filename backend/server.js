@@ -103,6 +103,8 @@ app.post('/api/chat', async (req, res) => {
 
     // Devolver audio WAV al ESP32
     res.set('Content-Type', 'audio/wav');
+    res.set('X-User-Text', encodeURIComponent(userText));
+    res.set('X-Bot-Text', encodeURIComponent(responseText));
     res.send(responseAudio);
 
   } catch (err) {

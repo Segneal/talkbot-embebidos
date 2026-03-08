@@ -1,4 +1,5 @@
 #include "display_controller.h"
+#ifdef ENABLE_DISPLAY
 #include <WiFi.h>
 
 // Update intervals (ms)
@@ -11,7 +12,7 @@ void DisplayController::begin() {
   _tft.setRotation(0);
   _tft.fillScreen(CLR_BG);
 
-  // Sprite de línea: 240 x 30 pixels (~14KB)
+  // Sprite de linea: 240 x 30 pixels (~14KB)
   _spr.createSprite(DISPLAY_WIDTH, 30);
   _spr.setTextDatum(MC_DATUM);
 
@@ -19,7 +20,7 @@ void DisplayController::begin() {
   _setBacklight(200);
 
   _needsFullRedraw = true;
-  Serial.println("[Display] ST7789 240x240 inicializado");
+  Serial.println("[Display] ILI9341 240x320 inicializado");
 }
 
 void DisplayController::_initBacklight() {
@@ -39,11 +40,11 @@ void DisplayController::setState(TalkbotState state) {
   _animFrame = 0;
   _animTimer = millis();
 
-  // Auto-switch a VU meter cuando graba
+  // Auto-switch: VU al grabar, Estado al procesar/hablar
   if (state == STATE_LISTENING) {
     _currentScreen = 5;  // VU Meter
-  } else if (_prevState == STATE_LISTENING && _currentScreen == 5) {
-    _currentScreen = 0;  // Volver a estado
+  } else if (state == STATE_PROCESSING || state == STATE_SPEAKING) {
+    _currentScreen = 0;  // Estado (muestra PROCESANDO/HABLANDO)
   }
 
   _needsFullRedraw = true;
@@ -101,7 +102,7 @@ void DisplayController::update() {
   unsigned long now = millis();
   unsigned long interval = (_currentScreen == 5) ? UPDATE_INTERVAL_VU : UPDATE_INTERVAL_NORMAL;
 
-  // Animación del ícono de estado
+  // Animacion del icono de estado
   if (now - _animTimer >= ANIM_INTERVAL) {
     _animTimer = now;
     _animFrame = (_animFrame + 1) % 4;
@@ -137,28 +138,27 @@ void DisplayController::update() {
 void DisplayController::_drawScreen0_Status() {
   _drawHeader("ESTADO");
 
-  // Ícono animado del estado (centro)
+  // Icono animado del estado (centro)
   if (_animFrame != _prevAnimFrame || _currentState != _prevState) {
-    // Limpiar zona del ícono
-    _tft.fillRect(70, 50, 100, 100, CLR_BG);
-    _drawStateIcon(120, 100, _currentState);
+    _tft.fillRect(70, 60, 100, 100, CLR_BG);
+    _drawStateIcon(120, 110, _currentState);
     _prevAnimFrame = _animFrame;
 
     // Nombre del estado
-    _tft.fillRect(0, 158, 240, 30, CLR_BG);
-    _drawCenteredText(_stateToString(_currentState), 170, 4, _stateToColor(_currentState));
+    _tft.fillRect(0, 175, 240, 30, CLR_BG);
+    _drawCenteredText(_stateToString(_currentState), 190, 4, _stateToColor(_currentState));
   }
 
   // Info WiFi + heap (zona inferior)
   uint32_t heap = ESP.getFreeHeap();
   int32_t rssi = WiFi.RSSI();
   if (heap != _prevHeap || rssi != _prevRssi) {
-    _tft.fillRect(0, 195, 240, 30, CLR_BG);
+    _tft.fillRect(0, 240, 240, 30, CLR_BG);
     _tft.setTextColor(CLR_DIM, CLR_BG);
     _tft.setTextDatum(MC_DATUM);
     char buf[40];
     snprintf(buf, sizeof(buf), "WiFi: %ddBm  Heap: %dKB", rssi, heap / 1024);
-    _tft.drawString(buf, 120, 208, 2);
+    _tft.drawString(buf, 120, 255, 2);
     _prevHeap = heap;
     _prevRssi = rssi;
   }
@@ -170,23 +170,23 @@ void DisplayController::_drawScreen1_Volume() {
 
   if (_volume != _prevVolume) {
     // Porcentaje grande
-    _tft.fillRect(0, 55, 240, 70, CLR_BG);
+    _tft.fillRect(0, 70, 240, 70, CLR_BG);
     char buf[8];
     snprintf(buf, sizeof(buf), "%d%%", _volume);
-    _drawCenteredText(buf, 90, 7, CLR_ACCENT);
+    _drawCenteredText(buf, 105, 7, CLR_ACCENT);
 
     // Barra de progreso
     float pct = _volume / 100.0f;
     uint16_t color = _volume > 80 ? CLR_RED : (_volume > 50 ? CLR_YELLOW : CLR_GREEN);
-    _drawProgressBar(20, 140, 200, 20, pct, color);
+    _drawProgressBar(20, 170, 200, 20, pct, color);
 
     // Etiquetas
-    _tft.fillRect(0, 170, 240, 20, CLR_BG);
+    _tft.fillRect(0, 200, 240, 20, CLR_BG);
     _tft.setTextColor(CLR_DIM, CLR_BG);
     _tft.setTextDatum(TL_DATUM);
-    _tft.drawString("0", 20, 172, 2);
+    _tft.drawString("0", 20, 202, 2);
     _tft.setTextDatum(TR_DATUM);
-    _tft.drawString("100", 220, 172, 2);
+    _tft.drawString("100", 220, 202, 2);
 
     _prevVolume = _volume;
   }
@@ -198,15 +198,14 @@ void DisplayController::_drawScreen2_WiFi() {
 
   int32_t rssi = WiFi.RSSI();
 
-  // Siempre redibujar (info cambia con frecuencia)
   // SSID
-  _tft.fillRect(0, 45, 240, 25, CLR_BG);
+  _tft.fillRect(0, 50, 240, 30, CLR_BG);
   _tft.setTextColor(CLR_TEXT, CLR_BG);
   _tft.setTextDatum(MC_DATUM);
-  _tft.drawString(WiFi.SSID(), 120, 58, 4);
+  _tft.drawString(WiFi.SSID(), 120, 65, 4);
 
-  // Barras de señal
-  _tft.fillRect(80, 80, 80, 60, CLR_BG);
+  // Barras de senal
+  _tft.fillRect(80, 95, 80, 70, CLR_BG);
   int bars = 0;
   if (rssi > -50) bars = 4;
   else if (rssi > -60) bars = 3;
@@ -214,29 +213,29 @@ void DisplayController::_drawScreen2_WiFi() {
   else if (rssi > -80) bars = 1;
 
   for (int i = 0; i < 4; i++) {
-    int bh = 12 + i * 12;
+    int bh = 12 + i * 14;
     int bx = 90 + i * 18;
-    int by = 140 - bh;
+    int by = 165 - bh;
     uint16_t color = (i < bars) ? CLR_GREEN : CLR_DARK_GRAY;
     _tft.fillRect(bx, by, 12, bh, color);
   }
 
   // RSSI
-  _tft.fillRect(0, 148, 240, 20, CLR_BG);
+  _tft.fillRect(0, 175, 240, 20, CLR_BG);
   char buf[20];
   snprintf(buf, sizeof(buf), "%d dBm", rssi);
-  _drawCenteredText(buf, 158, 2, CLR_DIM);
+  _drawCenteredText(buf, 185, 2, CLR_DIM);
 
   // IP
-  _tft.fillRect(0, 175, 240, 25, CLR_BG);
+  _tft.fillRect(0, 215, 240, 30, CLR_BG);
   _tft.setTextColor(CLR_ACCENT, CLR_BG);
   _tft.setTextDatum(MC_DATUM);
-  _tft.drawString(WiFi.localIP().toString(), 120, 188, 4);
+  _tft.drawString(WiFi.localIP().toString(), 120, 230, 4);
 
   _prevRssi = rssi;
 }
 
-// ==================== Pantalla 3: Conversación ====================
+// ==================== Pantalla 3: Conversacion ====================
 void DisplayController::_drawScreen3_Conversation() {
   _drawHeader("CHAT");
 
@@ -244,18 +243,18 @@ void DisplayController::_drawScreen3_Conversation() {
   _tft.setTextColor(CLR_ACCENT, CLR_BG);
 
   if (_lastQuestion.length() == 0) {
-    _drawCenteredText("Sin conversacion", 120, 2, CLR_DIM);
+    _drawCenteredText("Sin conversacion", 150, 2, CLR_DIM);
     return;
   }
 
   // Pregunta
   _tft.setTextColor(CLR_DIM, CLR_BG);
-  _tft.drawString("Tu:", 10, 45, 2);
+  _tft.drawString("Tu:", 10, 50, 2);
   _tft.setTextColor(CLR_TEXT, CLR_BG);
-  // Wrap text manually (máx ~28 chars por línea en font 2)
-  int y = 62;
+  // Wrap text (max ~28 chars por linea en font 2)
+  int y = 68;
   String q = _lastQuestion;
-  while (q.length() > 0 && y < 120) {
+  while (q.length() > 0 && y < 150) {
     int len = min((int)q.length(), 30);
     _tft.drawString(q.substring(0, len), 10, y, 2);
     q = q.substring(len);
@@ -263,13 +262,13 @@ void DisplayController::_drawScreen3_Conversation() {
   }
 
   // Respuesta
-  y += 5;
+  y += 8;
   _tft.setTextColor(CLR_DIM, CLR_BG);
   _tft.drawString("Bot:", 10, y, 2);
-  y += 17;
+  y += 18;
   _tft.setTextColor(CLR_GREEN, CLR_BG);
   String a = _lastAnswer;
-  while (a.length() > 0 && y < 220) {
+  while (a.length() > 0 && y < 290) {
     int len = min((int)a.length(), 30);
     _tft.drawString(a.substring(0, len), 10, y, 2);
     a = a.substring(len);
@@ -277,15 +276,15 @@ void DisplayController::_drawScreen3_Conversation() {
   }
 }
 
-// ==================== Pantalla 4: Estadísticas ====================
+// ==================== Pantalla 4: Estadisticas ====================
 void DisplayController::_drawScreen4_Stats() {
   _drawHeader("STATS");
 
   _tft.setTextDatum(TL_DATUM);
   _tft.setTextColor(CLR_DIM, CLR_BG);
 
-  int y = 50;
-  int spacing = 28;
+  int y = 55;
+  int spacing = 35;
   char buf[40];
 
   // Conversaciones
@@ -345,48 +344,39 @@ void DisplayController::_drawScreen5_VU() {
 
   if (_peakLevel == _prevPeakLevel) return;
 
-  // Barra grande vertical centrada
   int barW = 60;
-  int barH = 160;
+  int barH = 220;
   int barX = (DISPLAY_WIDTH - barW) / 2;
   int barY = 45;
 
-  // Fondo de barra
   _tft.fillRect(barX, barY, barW, barH, CLR_DARK_GRAY);
 
-  // Barra de nivel (de abajo hacia arriba)
   int fillH = (int)(_peakLevel * barH);
   if (fillH > 0) {
     int fillY = barY + barH - fillH;
-
-    // Gradiente: verde → amarillo → rojo
     uint16_t color;
     if (_peakLevel > 0.8f) color = CLR_RED;
     else if (_peakLevel > 0.5f) color = CLR_YELLOW;
     else color = CLR_GREEN;
-
     _tft.fillRect(barX, fillY, barW, fillH, color);
   }
 
-  // Borde
   _tft.drawRect(barX - 1, barY - 1, barW + 2, barH + 2, CLR_DIM);
 
-  // Porcentaje
-  _tft.fillRect(0, 210, 240, 20, CLR_BG);
+  _tft.fillRect(0, 275, 240, 20, CLR_BG);
   char buf[8];
   snprintf(buf, sizeof(buf), "%d%%", (int)(_peakLevel * 100));
-  _drawCenteredText(buf, 218, 2, CLR_TEXT);
+  _drawCenteredText(buf, 285, 2, CLR_TEXT);
 
-  // Barras laterales decorativas (izquierda)
-  int numBars = 10;
+  int numBars = 12;
   for (int i = 0; i < numBars; i++) {
     float threshold = (float)i / numBars;
     int by = barY + barH - (int)((float)(i + 1) / numBars * barH);
     uint16_t c = (_peakLevel > threshold) ? CLR_GREEN : CLR_DARK_GRAY;
     if (threshold > 0.5f) c = (_peakLevel > threshold) ? CLR_YELLOW : CLR_DARK_GRAY;
     if (threshold > 0.8f) c = (_peakLevel > threshold) ? CLR_RED : CLR_DARK_GRAY;
-    _tft.fillRect(20, by, 40, 12, c);
-    _tft.fillRect(180, by, 40, 12, c);
+    _tft.fillRect(15, by, 40, 14, c);
+    _tft.fillRect(185, by, 40, 14, c);
   }
 
   _prevPeakLevel = _peakLevel;
@@ -402,12 +392,12 @@ void DisplayController::_drawHeader(const char* title) {
   _spr.drawString(title, DISPLAY_WIDTH / 2, 15, 4);
   _spr.pushSprite(0, 0);
 
-  // Línea separadora
+  // Linea separadora
   _tft.drawFastHLine(10, 32, 220, CLR_DARK_GRAY);
 }
 
 void DisplayController::_drawNavDots() {
-  int dotY = 232;
+  int dotY = DISPLAY_HEIGHT - 10;  // 310 para 320
   int totalWidth = NUM_SCREENS * 12;
   int startX = (DISPLAY_WIDTH - totalWidth) / 2;
 
@@ -443,7 +433,7 @@ void DisplayController::_drawStateIcon(int cx, int cy, TalkbotState state) {
 
   switch (state) {
     case STATE_IDLE: {
-      // Círculo pulsante
+      // Circulo pulsante
       int r = 25 + (_animFrame % 3) * 3;
       _tft.fillCircle(cx, cy, r, color);
       _tft.fillCircle(cx, cy, r - 6, CLR_BG);
@@ -451,9 +441,9 @@ void DisplayController::_drawStateIcon(int cx, int cy, TalkbotState state) {
       break;
     }
     case STATE_LISTENING: {
-      // Micrófono animado (barras de audio)
+      // Microfono animado (barras de audio)
       int heights[] = {15, 25, 35, 25, 15};
-      int offsets[] = {2, -3, 5, -2, 3};  // variación por frame
+      int offsets[] = {2, -3, 5, -2, 3};
       for (int i = 0; i < 5; i++) {
         int h = heights[i] + offsets[(_animFrame + i) % 4];
         int bx = cx - 24 + i * 12;
@@ -494,7 +484,7 @@ void DisplayController::_drawStateIcon(int cx, int cy, TalkbotState state) {
       break;
     }
     case STATE_WIFI_CONFIG: {
-      // WiFi ícono animado
+      // WiFi icono animado
       for (int i = 0; i < 3; i++) {
         int r = 12 + i * 10;
         uint16_t c = (i <= _animFrame % 4) ? CLR_YELLOW : CLR_DARK_GRAY;
@@ -532,3 +522,5 @@ uint16_t DisplayController::_stateToColor(TalkbotState state) {
     default:                return CLR_TEXT;
   }
 }
+
+#endif // ENABLE_DISPLAY

@@ -22,10 +22,14 @@ public:
   bool checkHealth();
 
   String getLastError() { return _lastError; }
+  String getLastUserText() { return _lastUserText; }
+  String getLastBotText() { return _lastBotText; }
 
 private:
   String _baseUrl;
   String _lastError;
+  String _lastUserText;
+  String _lastBotText;
 };
 
 #endif

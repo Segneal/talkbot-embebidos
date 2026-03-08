@@ -2,7 +2,7 @@
 #include <driver/dac.h>
 
 // I2S DAC mode: salida analógica GPIO25 (DAC1) via DMA
-// PAM8403 amplificador analógico conectado a GPIO25
+// Jack 3.5mm → Noga NG-106 (parlante amplificado USB)
 
 #define I2S_DAC_PORT I2S_NUM_0
 
@@ -42,17 +42,17 @@ void AudioPlayer::_deinitI2s() {
     i2s_set_dac_mode(I2S_DAC_CHANNEL_DISABLE);
     i2s_driver_uninstall(I2S_DAC_PORT);
     _initialized = false;
-    // Deshabilitar DAC - con R 10K a GND el pin queda silencioso
+    // Deshabilitar DAC para evitar ruido en el jack 3.5mm
     dac_output_disable(DAC_CHANNEL_1);
     dac_output_disable(DAC_CHANNEL_2);
   }
 }
 
 bool AudioPlayer::begin() {
-  // Deshabilitar DAC - con R 10K a GND el pin queda silencioso
+  // Deshabilitar DAC para evitar ruido en el jack 3.5mm
   dac_output_disable(DAC_CHANNEL_1);
   dac_output_disable(DAC_CHANNEL_2);
-  Serial.println("[Player] Audio player listo (DAC → GPIO25 → PAM8403)");
+  Serial.println("[Player] Audio player listo (DAC → GPIO25 → Jack 3.5mm)");
   return true;
 }
 

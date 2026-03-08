@@ -47,6 +47,9 @@ bool ApiClient::sendAudioAndPlay(uint8_t* wavData, size_t wavSize, AudioPlayer& 
   http.addHeader("X-Agent", agentName);
   if (strlen(API_KEY) > 0) http.addHeader("X-API-Key", API_KEY);
 
+  const char* headersToCollect[] = {"X-User-Text", "X-Bot-Text"};
+  http.collectHeaders(headersToCollect, 2);
+
   int httpCode = http.POST(wavData, wavSize);
   if (onSent) onSent();
 
@@ -56,6 +59,31 @@ bool ApiClient::sendAudioAndPlay(uint8_t* wavData, size_t wavSize, AudioPlayer& 
     Serial.printf("[API] %s\n", _lastError.c_str());
     http.end();
     return false;
+  }
+
+  // Capturar textos de la conversación desde headers
+  if (http.hasHeader("X-User-Text")) {
+    _lastUserText = http.header("X-User-Text");
+    // Decodificar %XX URL encoding básico
+    _lastUserText.replace("%20", " ");
+    _lastUserText.replace("%C3%A1", "á"); _lastUserText.replace("%C3%A9", "é");
+    _lastUserText.replace("%C3%AD", "í"); _lastUserText.replace("%C3%B3", "ó");
+    _lastUserText.replace("%C3%BA", "ú"); _lastUserText.replace("%C3%B1", "ñ");
+    _lastUserText.replace("%C3%BC", "ü");
+    _lastUserText.replace("%3F", "?"); _lastUserText.replace("%21", "!");
+    _lastUserText.replace("%2C", ",");
+    Serial.printf("[API] User: %s\n", _lastUserText.c_str());
+  }
+  if (http.hasHeader("X-Bot-Text")) {
+    _lastBotText = http.header("X-Bot-Text");
+    _lastBotText.replace("%20", " ");
+    _lastBotText.replace("%C3%A1", "á"); _lastBotText.replace("%C3%A9", "é");
+    _lastBotText.replace("%C3%AD", "í"); _lastBotText.replace("%C3%B3", "ó");
+    _lastBotText.replace("%C3%BA", "ú"); _lastBotText.replace("%C3%B1", "ñ");
+    _lastBotText.replace("%C3%BC", "ü");
+    _lastBotText.replace("%3F", "?"); _lastBotText.replace("%21", "!");
+    _lastBotText.replace("%2C", ",");
+    Serial.printf("[API] Bot: %s\n", _lastBotText.c_str());
   }
 
   int contentLength = http.getSize();
@@ -102,10 +130,9 @@ bool ApiClient::sendAudioAndPlay(uint8_t* wavData, size_t wavSize, AudioPlayer& 
     return false;
   }
 
-  int32_t vol = player.getVolume();
   size_t totalRead = 0;
   size_t dataSize = (contentLength > 0) ? contentLength - 44 : 0;
-  Serial.printf("[API] vol=%d dataSize=%d\n", vol, dataSize);
+  Serial.printf("[API] vol=%d dataSize=%d\n", player.getVolume(), dataSize);
 
   i2s_port_t i2sPort = player.getI2sPort();
   uint8_t netBuf[512];
@@ -159,6 +186,7 @@ bool ApiClient::sendAudioAndPlay(uint8_t* wavData, size_t wavSize, AudioPlayer& 
             numSamples > 4 ? samples[4] : 0);
         }
 
+        int32_t vol = player.getVolume();  // Leer volumen en vivo por chunk
         for (size_t i = 0; i < numSamples; i++) {
           int32_t s = (int32_t)samples[i] * vol / 100;
           uint16_t d = toDac((int16_t)constrain(s, -32768, 32767));
@@ -181,6 +209,11 @@ bool ApiClient::sendAudioAndPlay(uint8_t* wavData, size_t wavSize, AudioPlayer& 
   float expectedDuration = (float)dataSize / (sampleRate * numChannels * bitsPerSample / 8);
   Serial.printf("[API] Chunks=%d totalRead=%d duration=%dms expected=%.0fms\n",
     chunkCount, totalRead, playDuration, expectedDuration * 1000);
+
+  // Esperar a que el buffer DMA termine de reproducir
+  // 8 buffers x 1024 samples / sampleRate ≈ 500ms a 16kHz
+  unsigned long drainMs = (unsigned long)I2S_DMA_BUF_COUNT * I2S_DMA_BUF_LEN * 1000UL / sampleRate;
+  delay(drainMs);
 
   player.deinitI2sStream();
   http.end();
