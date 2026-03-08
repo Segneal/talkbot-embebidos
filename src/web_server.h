@@ -6,13 +6,13 @@
 #include <LittleFS.h>
 #include <Preferences.h>
 #include "config.h"
-#include "led_controller.h"
+#include "display_controller.h"
 #include "audio_player.h"
 #include "api_client.h"
 
 class TalkbotWebServer {
 public:
-  void begin(LedController* leds, AudioPlayer* player, TalkbotState* statePtr, ApiClient* api = nullptr);
+  void begin(DisplayController* display, AudioPlayer* player, TalkbotState* statePtr, ApiClient* api = nullptr);
   void handleClient();
 
   // Config de agente (leída desde main.cpp)
@@ -22,7 +22,7 @@ public:
 
 private:
   WebServer _server{80};
-  LedController* _leds = nullptr;
+  DisplayController* _display = nullptr;
   AudioPlayer* _player = nullptr;
   ApiClient* _api = nullptr;
   TalkbotState* _statePtr = nullptr;
@@ -35,14 +35,13 @@ private:
   void _handleFile(const String& path, const String& contentType);
   void _handleStatus();
   void _handleSetVolume();
-  void _handleSetLeds();
   void _handleGetConfig();
   void _handleSetConfig();
   void _handleReboot();
+  void _handleWifiReset();
   void _handleNotFound();
 
   String _stateToString(TalkbotState state);
-  uint8_t _pinFromColorName(const String& color);
 };
 
 #endif

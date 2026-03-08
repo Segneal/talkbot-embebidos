@@ -1,9 +1,11 @@
 #include "web_server.h"
 #include <WiFi.h>
+#include <WiFiManager.h>
 #include <ArduinoJson.h>
+#include <ESPmDNS.h>
 
-void TalkbotWebServer::begin(LedController* leds, AudioPlayer* player, TalkbotState* statePtr, ApiClient* api) {
-  _leds = leds;
+void TalkbotWebServer::begin(DisplayController* display, AudioPlayer* player, TalkbotState* statePtr, ApiClient* api) {
+  _display = display;
   _player = player;
   _statePtr = statePtr;
   _api = api;
@@ -27,13 +29,18 @@ void TalkbotWebServer::begin(LedController* leds, AudioPlayer* player, TalkbotSt
   _server.on("/app.js", HTTP_GET, [this]() { _handleFile("/app.js", "application/javascript"); });
   _server.on("/api/status", HTTP_GET, [this]() { _handleStatus(); });
   _server.on("/api/volume", HTTP_POST, [this]() { _handleSetVolume(); });
-  _server.on("/api/leds", HTTP_POST, [this]() { _handleSetLeds(); });
   _server.on("/api/config", HTTP_GET, [this]() { _handleGetConfig(); });
   _server.on("/api/config", HTTP_POST, [this]() { _handleSetConfig(); });
   _server.on("/api/reboot", HTTP_POST, [this]() { _handleReboot(); });
+  _server.on("/api/wifi-reset", HTTP_POST, [this]() { _handleWifiReset(); });
   _server.onNotFound([this]() { _handleNotFound(); });
 
   _server.begin();
+
+  if (MDNS.begin("talkbot")) {
+    MDNS.addService("http", "tcp", 80);
+    Serial.println("mDNS: talkbot.local");
+  }
   Serial.println("Web server iniciado en puerto 80");
 }
 
@@ -61,14 +68,16 @@ void TalkbotWebServer::_handleStatus() {
   doc["volume"] = _player->getVolume();
   doc["uptime"] = (millis() - _startTime) / 1000;
   doc["freeHeap"] = ESP.getFreeHeap();
+  doc["minHeap"] = ESP.getMinFreeHeap();
   doc["ip"] = WiFi.localIP().toString();
   doc["rssi"] = WiFi.RSSI();
-
-  // LED config actual
-  JsonObject leds = doc["leds"].to<JsonObject>();
-  leds["listening"] = _leds->getListeningLed();
-  leds["speaking"] = _leds->getSpeakingLed();
-  leds["processing"] = _leds->getProcessingLed();
+  doc["ssid"] = WiFi.SSID();
+  doc["displayScreen"] = _display->getScreen();
+  doc["peakLevel"] = _display->getPeakLevel();
+  doc["conversations"] = _display->getConversationCount();
+  doc["avgLatency"] = _display->getAvgLatency();
+  doc["lastQuestion"] = _display->getLastQuestion();
+  doc["lastAnswer"] = _display->getLastAnswer();
 
   String response;
   serializeJson(doc, response);
@@ -91,38 +100,12 @@ void TalkbotWebServer::_handleSetVolume() {
   if (!doc["volume"].isNull()) {
     uint8_t vol = doc["volume"].as<uint8_t>();
     _player->setVolume(vol);
+    _display->setVolume(vol);
     Serial.printf("Volumen ajustado a: %d\n", vol);
     _server.send(200, "application/json", "{\"ok\":true,\"volume\":" + String(vol) + "}");
   } else {
     _server.send(400, "application/json", "{\"error\":\"Falta campo volume\"}");
   }
-}
-
-void TalkbotWebServer::_handleSetLeds() {
-  if (!_server.hasArg("plain")) {
-    _server.send(400, "application/json", "{\"error\":\"No body\"}");
-    return;
-  }
-
-  JsonDocument doc;
-  DeserializationError err = deserializeJson(doc, _server.arg("plain"));
-  if (err) {
-    _server.send(400, "application/json", "{\"error\":\"JSON inválido\"}");
-    return;
-  }
-
-  if (!doc["listening"].isNull()) {
-    _leds->setListeningLed(_pinFromColorName(doc["listening"].as<String>()));
-  }
-  if (!doc["speaking"].isNull()) {
-    _leds->setSpeakingLed(_pinFromColorName(doc["speaking"].as<String>()));
-  }
-  if (!doc["processing"].isNull()) {
-    _leds->setProcessingLed(_pinFromColorName(doc["processing"].as<String>()));
-  }
-
-  Serial.println("Configuración de LEDs actualizada");
-  _server.send(200, "application/json", "{\"ok\":true}");
 }
 
 void TalkbotWebServer::_handleGetConfig() {
@@ -171,6 +154,7 @@ void TalkbotWebServer::_handleSetConfig() {
   if (!doc["volume"].isNull()) {
     uint8_t vol = doc["volume"].as<uint8_t>();
     _player->setVolume(vol);
+    _display->setVolume(vol);
     Serial.printf("Volumen ajustado a: %d\n", vol);
   }
 
@@ -199,6 +183,15 @@ void TalkbotWebServer::_handleReboot() {
   ESP.restart();
 }
 
+void TalkbotWebServer::_handleWifiReset() {
+  _server.send(200, "application/json", "{\"ok\":true,\"message\":\"Reseteando WiFi...\"}");
+  delay(500);
+  WiFiManager wm;
+  wm.resetSettings();
+  delay(500);
+  ESP.restart();
+}
+
 void TalkbotWebServer::_handleNotFound() {
   _server.send(404, "text/plain", "Not Found");
 }
@@ -212,11 +205,4 @@ String TalkbotWebServer::_stateToString(TalkbotState state) {
     case STATE_ERROR:      return "error";
     default:               return "unknown";
   }
-}
-
-uint8_t TalkbotWebServer::_pinFromColorName(const String& color) {
-  if (color == "green")  return LED_GREEN_PIN;
-  if (color == "red")    return LED_RED_PIN;
-  if (color == "yellow") return LED_YELLOW_PIN;
-  return LED_GREEN_PIN;  // default
 }

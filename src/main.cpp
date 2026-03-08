@@ -1,262 +1,224 @@
 /*
- * Talkbot - Asistente de voz estilo Alexa con ESP32
- * Push-to-talk con MAX9814 (mic) + MAX98357 (speaker)
- * Backend Python: Amazon Transcribe + Claude Bedrock + ElevenLabs
+ * Talkbot - ESP32 Voice Assistant
+ * Componentes habilitados via feature flags en config.h
  */
 
+#include <Arduino.h>
+#include "config.h"
+
+#ifdef ENABLE_WIFI
 #include <WiFi.h>
 #include <WiFiManager.h>
-#include <ESPmDNS.h>
-#include <Ticker.h>
-#include "config.h"
-#include "led_controller.h"
+#endif
+
+#ifdef ENABLE_DISPLAY
+#include "display_controller.h"
+DisplayController display;
+#endif
+
+#ifdef ENABLE_AUDIO
 #include "audio_recorder.h"
 #include "audio_player.h"
-#include "api_client.h"
-#include "web_server.h"
-
-// Componentes
-LedController leds;
 AudioRecorder recorder;
 AudioPlayer player;
-ApiClient api;
-TalkbotWebServer webServer;
+#endif
 
-// Estado actual
+#ifdef ENABLE_API
+#include "api_client.h"
+ApiClient apiClient;
+#endif
+
+#ifdef ENABLE_WEBSERVER
+#include "web_server.h"
+TalkbotWebServer webServer;
+#endif
+
+// Estado global
 TalkbotState currentState = STATE_IDLE;
 
-// Botón
-volatile bool buttonPressed = false;
-unsigned long lastDebounce = 0;
-bool lastButtonState = HIGH;
+#if defined(ENABLE_AUDIO) && defined(ENABLE_DISPLAY)
+void onPeakUpdate(float level) {
+  display.setPeakLevel(level);
+  display.update();
+}
+#endif
 
-// Error timeout
-unsigned long errorStartTime = 0;
-#define ERROR_DISPLAY_MS 3000
-
-// Ticker para LEDs durante WiFi config (autoConnect es bloqueante)
-Ticker ledTicker;
-void ledTickerCallback() { leds.update(); }
-
-// --- Task handle para grabación en segundo plano ---
-TaskHandle_t recordTaskHandle = NULL;
-volatile bool recordTaskDone = false;
-
-// Forward declarations (necesarias en .cpp, no en .ino)
-void handleButton(bool state);
-void startListening();
-void stopListeningAndProcess();
-void setError(const char* message);
-
-void recordTask(void* param) {
-  recorder.startRecording();
-  recordTaskDone = true;
-  vTaskDelete(NULL);
+void setState(TalkbotState newState) {
+  currentState = newState;
+#ifdef ENABLE_DISPLAY
+  display.setState(newState);
+#endif
+  Serial.printf("[Main] Estado: %d\n", newState);
 }
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("\n=== Talkbot Iniciando ===");
+  delay(500);
+  Serial.println("\n=== TALKBOT ===");
 
-  // LEDs
-  leds.begin();
-  leds.setState(STATE_PROCESSING);  // Amarillo mientras inicia
-
-  // Botón push-to-talk
-  pinMode(BUTTON_PIN, INPUT_PULLUP);
-  pinMode(LED_SWITCH_PIN, INPUT_PULLUP);
-
-  // Audio
-  if (!recorder.begin()) {
-    Serial.println("FATAL: No se pudo inicializar el grabador");
-    leds.setState(STATE_ERROR);
-    while (true) { leds.update(); delay(10); }
-  }
-  player.begin();
-
-  // WiFi via WiFiManager (captive portal)
+  // --- WiFi ---
+#ifdef ENABLE_WIFI
+  Serial.println("[WiFi] Iniciando WiFiManager...");
+  #ifdef ENABLE_DISPLAY
+  setState(STATE_WIFI_CONFIG);
+  #endif
   WiFiManager wm;
   wm.setConfigPortalTimeout(WM_TIMEOUT);
-  wm.setConnectTimeout(10);
-
-  // Cuando entra en modo AP, activar LEDs de configuración
-  wm.setAPCallback([](WiFiManager* wm) {
-    Serial.println(">> Modo configuración WiFi activado");
-    Serial.println(">> Conectate a la red: " WM_AP_NAME);
-    leds.setState(STATE_WIFI_CONFIG);
-    // Ticker para actualizar LEDs mientras autoConnect bloquea
-    ledTicker.attach_ms(50, ledTickerCallback);
-  });
-
-  Serial.println("Conectando a WiFi...");
-  Serial.println("Si no conecta, busca la red: " WM_AP_NAME);
-
   if (!wm.autoConnect(WM_AP_NAME, WM_AP_PASS)) {
-    ledTicker.detach();
-    Serial.println("Error: No se pudo conectar a WiFi (timeout)");
-    Serial.println("Reiniciando en 3 segundos...");
-    leds.setState(STATE_ERROR);
-    delay(3000);
+    Serial.println("[WiFi] Fallo conexion, reiniciando...");
     ESP.restart();
   }
+  Serial.printf("[WiFi] Conectado: %s\n", WiFi.localIP().toString().c_str());
+#endif
 
-  ledTicker.detach();
-  Serial.printf("WiFi conectado! IP: %s\n", WiFi.localIP().toString().c_str());
+  // --- Display ---
+#ifdef ENABLE_DISPLAY
+  display.begin();
+  setState(STATE_IDLE);
+  Serial.println("[Display] OK");
+#endif
 
-  // mDNS → accesible como http://talkbot.local
-  if (MDNS.begin("talkbot")) {
-    Serial.println("mDNS: http://talkbot.local");
-  }
+  // --- Audio ---
+#ifdef ENABLE_AUDIO
+  recorder.begin();
+  player.begin();
+  Serial.println("[Audio] OK");
+#endif
 
-  // Web Server (cargar config antes de API Client)
-  webServer.begin(&leds, &player, &currentState, &api);
+  // --- API Client ---
+#ifdef ENABLE_API
+  apiClient.begin(BACKEND_URL);
+  Serial.println("[API] OK");
+#endif
 
-  // API Client (usa URL guardada en NVS)
-  api.begin(webServer.getBackendUrl().c_str());
+  // --- Web Server ---
+#ifdef ENABLE_WEBSERVER
+  webServer.begin(&display, &player, &currentState, &apiClient);
+  Serial.println("[WebServer] OK");
+#endif
 
-  // Verificar backend (reintentar, atender web server mientras espera)
-  Serial.println("Esperando backend...");
-  leds.setState(STATE_ERROR);  // Rojo hasta que responda
-  bool backendOk = false;
-  for (int i = 0; i < 10; i++) {
-    leds.update();
-    webServer.handleClient();  // Atender web UI durante espera
-    if (api.checkHealth()) {
-      backendOk = true;
-      break;
-    }
-    Serial.printf("Reintento %d/10...\n", i + 1);
-    // Esperar 3s pero seguir atendiendo web server
-    unsigned long waitStart = millis();
-    while (millis() - waitStart < 3000) {
-      webServer.handleClient();
-      leds.update();
-      delay(10);
-    }
-  }
-  Serial.println(backendOk ? "Backend disponible" : "AVISO: Backend no respondió (continuando)");
+  // --- Botones ---
+#ifdef ENABLE_BUTTONS
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  pinMode(BTN_VOL_UP_PIN, INPUT_PULLUP);
+  pinMode(BTN_VOL_DOWN_PIN, INPUT_PULLUP);
+  pinMode(BTN_SCREEN_PIN, INPUT_PULLUP);
+  Serial.println("[Buttons] OK");
+#endif
 
-  // Listo
-  leds.setState(STATE_IDLE);
-  Serial.println("=== Talkbot Listo ===");
-  Serial.printf("Heap libre: %d bytes\n", ESP.getFreeHeap());
+  Serial.println("=== SETUP COMPLETO ===");
 }
 
 void loop() {
-  static bool firstRun = true;
-  if (firstRun) {
-    Serial.println(">>> loop() iniciado");
-    firstRun = false;
-  }
+  // --- Display update ---
+#ifdef ENABLE_DISPLAY
+  display.update();
+#endif
 
-  // Manejar web server
+  // --- Web Server ---
+#ifdef ENABLE_WEBSERVER
   webServer.handleClient();
+#endif
 
-  // Switch de LEDs: desactivado (pin 33 flota sin switch conectado)
-  // bool switchClosed = (digitalRead(LED_SWITCH_PIN) == LOW);
-  // bool ledsShould = !switchClosed;
-  // if (ledsShould != leds.isEnabled()) {
-  //   leds.setEnabled(ledsShould);
-  //   Serial.printf("LEDs: %s\n", ledsShould ? "ON" : "OFF");
-  // }
+  // --- PTT Button ---
+#ifdef ENABLE_BUTTONS
+#ifdef ENABLE_AUDIO
+  static unsigned long lastDebounce = 0;
+  static bool pttWasPressed = false;
+  bool pressed = (digitalRead(BUTTON_PIN) == LOW);
 
-  // Actualizar LEDs (parpadeo en error)
-  leds.update();
-
-  // Botón push-to-talk
-  bool currentButtonState = digitalRead(BUTTON_PIN);
-  if (currentButtonState != lastButtonState) {
+  // Solo en flanco de bajada (nueva presion), no mientras mantiene
+  if (pressed && !pttWasPressed && currentState == STATE_IDLE && (millis() - lastDebounce > DEBOUNCE_MS)) {
     lastDebounce = millis();
+    pttWasPressed = true;
+    setState(STATE_LISTENING);
+    #ifdef ENABLE_DISPLAY
+    recorder.startRecording(onPeakUpdate);  // Bloquea con VU en vivo
+    #else
+    recorder.startRecording();
+    #endif
+
+    // Grabacion terminada
+    Serial.printf("[Mic] Grabado: %d bytes, peak: %.2f\n",
+                  recorder.getBufferSize(), recorder.getPeakLevel());
+
+#ifdef ENABLE_API
+    setState(STATE_PROCESSING);
+    #ifdef ENABLE_DISPLAY
+    display.update();  // Forzar redibujado antes del bloqueo
+    #endif
+    bool ok = apiClient.sendAudioAndPlay(
+      recorder.getBuffer(), recorder.getBufferSize(), player,
+      webServer.getVoiceId(), webServer.getAgentName(),
+      [](){ recorder.freeBuffer(); }  // Liberar buffer tras enviar
+    );
+
+    if (ok) {
+      setState(STATE_SPEAKING);
+      #ifdef ENABLE_DISPLAY
+      display.setConversation(apiClient.getLastUserText(), apiClient.getLastBotText());
+      display.addConversation();
+      #endif
+      setState(STATE_IDLE);
+    } else {
+      Serial.printf("[API] Error: %s\n", apiClient.getLastError().c_str());
+      setState(STATE_ERROR);
+      delay(2000);
+      setState(STATE_IDLE);
+    }
+#else
+    // Sin API: mostrar resultado y volver a IDLE
+    #ifdef ENABLE_DISPLAY
+    display.setPeakLevel(recorder.getPeakLevel());
+    #endif
+    setState(STATE_IDLE);
+#endif // ENABLE_API
+
+    recorder.freeBuffer();
   }
-  if ((millis() - lastDebounce) > DEBOUNCE_MS) {
-    handleButton(currentButtonState);
-  }
-  lastButtonState = currentButtonState;
+  if (!pressed) pttWasPressed = false;
+#endif // ENABLE_AUDIO
 
-  // Timeout de error
-  if (currentState == STATE_ERROR && (millis() - errorStartTime > ERROR_DISPLAY_MS)) {
-    currentState = STATE_IDLE;
-    leds.setState(STATE_IDLE);
-  }
-}
-
-void handleButton(bool state) {
-  // Botón presionado (LOW porque es INPUT_PULLUP)
-  if (state == LOW && currentState == STATE_IDLE) {
-    startListening();
-  }
-  // Botón suelto
-  else if (state == HIGH && currentState == STATE_LISTENING) {
-    stopListeningAndProcess();
-  }
-}
-
-void startListening() {
-  Serial.println(">> Escuchando...");
-  currentState = STATE_LISTENING;
-  leds.setState(STATE_LISTENING);
-
-  recordTaskDone = false;
-  xTaskCreatePinnedToCore(
-    recordTask,
-    "RecordTask",
-    8192,
-    NULL,
-    1,
-    &recordTaskHandle,
-    1  // Core 1
-  );
-}
-
-void stopListeningAndProcess() {
-  Serial.println(">> Procesando...");
-
-  // Señalar que pare de grabar y esperar a que termine la tarea
-  recorder.stopRecording();
-  unsigned long waitStart = millis();
-  while (!recordTaskDone && (millis() - waitStart < 2000)) {
-    delay(10);
-  }
-  recordTaskHandle = NULL;
-
-  currentState = STATE_PROCESSING;
-  leds.setState(STATE_PROCESSING);
-
-  // Verificar que tenemos audio
-  if (recorder.getBuffer() == nullptr || recorder.getBufferSize() == 0) {
-    setError("No se grabó audio");
-    return;
-  }
-
-  Serial.printf("Audio grabado: %d bytes\n", recorder.getBufferSize());
-
-  // Enviar al backend y reproducir en streaming
-  bool ok = api.sendAudioAndPlay(
-    recorder.getBuffer(),
-    recorder.getBufferSize(),
-    player,
-    webServer.getVoiceId(),
-    webServer.getAgentName()
-  );
-
-  // Ya no necesitamos el buffer de grabación
-  recorder.freeBuffer();
-
-  if (!ok) {
-    setError(api.getLastError().c_str());
-    return;
+  // --- Vol Up ---
+  static unsigned long lastVolUp = 0;
+  static uint8_t currentVolume = 80;
+  if (digitalRead(BTN_VOL_UP_PIN) == LOW && (millis() - lastVolUp > BTN_DEBOUNCE_MS)) {
+    lastVolUp = millis();
+    currentVolume = min(100, currentVolume + VOLUME_STEP);
+    #ifdef ENABLE_AUDIO
+    player.setVolume(currentVolume);
+    #endif
+    #ifdef ENABLE_DISPLAY
+    display.setVolume(currentVolume);
+    display.setScreen(1);  // Auto-switch a pantalla volumen
+    #endif
+    Serial.printf("[Vol] %d%%\n", currentVolume);
   }
 
-  // Volver a idle
-  currentState = STATE_IDLE;
-  leds.setState(STATE_IDLE);
-  Serial.println(">> Listo");
-  Serial.printf("Heap libre: %d bytes\n", ESP.getFreeHeap());
-}
+  // --- Vol Down ---
+  static unsigned long lastVolDown = 0;
+  if (digitalRead(BTN_VOL_DOWN_PIN) == LOW && (millis() - lastVolDown > BTN_DEBOUNCE_MS)) {
+    lastVolDown = millis();
+    currentVolume = (currentVolume >= VOLUME_STEP) ? currentVolume - VOLUME_STEP : 0;
+    #ifdef ENABLE_AUDIO
+    player.setVolume(currentVolume);
+    #endif
+    #ifdef ENABLE_DISPLAY
+    display.setVolume(currentVolume);
+    display.setScreen(1);  // Auto-switch a pantalla volumen
+    #endif
+    Serial.printf("[Vol] %d%%\n", currentVolume);
+  }
 
-void setError(const char* message) {
-  Serial.printf("ERROR: %s\n", message);
-  currentState = STATE_ERROR;
-  leds.setState(STATE_ERROR);
-  errorStartTime = millis();
+  // --- Screen button ---
+  static unsigned long lastScreen = 0;
+  if (digitalRead(BTN_SCREEN_PIN) == LOW && (millis() - lastScreen > BTN_DEBOUNCE_MS)) {
+    lastScreen = millis();
+    #ifdef ENABLE_DISPLAY
+    display.nextScreen();
+    #endif
+  }
+#endif // ENABLE_BUTTONS
+
+  delay(10);
 }

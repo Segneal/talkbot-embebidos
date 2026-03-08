@@ -3,6 +3,8 @@ backend/.env
 .claude/
 .env*
 .pio/
-.vscode/
-__pycache__/
 logs/
+.vscode/
+.playwright-mcp/
+backend/last_tts.wav
+*.wav

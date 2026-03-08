@@ -1,7 +1,8 @@
 #include "audio_recorder.h"
+#include <driver/dac.h>
 
 #define I2S_ADC_UNIT    ADC_UNIT_1
-#define I2S_ADC_CHANNEL ADC1_CHANNEL_6  // GPIO 34
+#define I2S_ADC_CHANNEL ADC1_CHANNEL_7  // GPIO 35
 #define WAV_HEADER_SIZE 44
 
 bool AudioRecorder::_initI2sAdc() {
@@ -29,6 +30,9 @@ bool AudioRecorder::_initI2sAdc() {
     return false;
   }
 
+  // Deshabilitar DAC para que no reproduzca la entrada del mic por GPIO25
+  i2s_set_dac_mode(I2S_DAC_CHANNEL_DISABLE);
+
   i2s_adc_enable(I2S_NUM_0);
   return true;
 }
@@ -44,8 +48,8 @@ bool AudioRecorder::begin() {
   return true;
 }
 
-void AudioRecorder::startRecording() {
-  if (_recording) return;
+void AudioRecorder::startRecording(PeakCallback cb) {
+  if (_recording) { Serial.println("[Rec] Ya grabando!"); return; }
 
   _pcmSamples = 0;
   _wavSize = 0;
@@ -58,32 +62,37 @@ void AudioRecorder::startRecording() {
 
   // Un solo buffer: 44 bytes header + PCM data
   size_t totalSize = WAV_HEADER_SIZE + AUDIO_BUFFER_SIZE;
+  Serial.printf("[Rec] Allocating %d bytes (heap: %d)\n", totalSize, ESP.getFreeHeap());
   _wavBuffer = (uint8_t*)malloc(totalSize);
   if (!_wavBuffer) {
-    Serial.printf("Error: No se pudo asignar buffer (%d bytes, heap: %d)\n",
-                   totalSize, ESP.getFreeHeap());
+    Serial.printf("[Rec] ERROR malloc! (heap: %d)\n", ESP.getFreeHeap());
     return;
   }
+  Serial.println("[Rec] Buffer OK");
 
   // PCM samples van después del header
   int16_t* pcmDest = (int16_t*)(_wavBuffer + WAV_HEADER_SIZE);
   size_t maxSamples = AUDIO_BUFFER_SIZE / sizeof(int16_t);
 
   if (!_initI2sAdc()) {
-    Serial.println("Error iniciando I2S ADC");
+    Serial.println("[Rec] ERROR I2S ADC init!");
     free(_wavBuffer);
     _wavBuffer = nullptr;
     return;
   }
+  Serial.println("[Rec] I2S OK, grabando...");
 
   _recording = true;
+  _lastPeakLevel = 0.0f;
   Serial.println("Grabación iniciada");
 
   int16_t readBuf[256];
   int sampleCounter = 0;
+  int16_t chunkPeak = 0;
 
   while (_recording && _pcmSamples < maxSamples) {
     size_t bytesRead = 0;
+    chunkPeak = 0;
 
     esp_err_t err = i2s_read(I2S_NUM_0, readBuf, sizeof(readBuf), &bytesRead, 100 / portTICK_PERIOD_MS);
     if (err == ESP_OK && bytesRead > 0) {
@@ -96,12 +105,19 @@ void AudioRecorder::startRecording() {
           sample = (sample & 0x0FFF) - 2048;
           sample <<= 4;
           pcmDest[_pcmSamples++] = sample;
+          // Track peak level for VU meter
+          int16_t absSample = abs(sample);
+          if (absSample > chunkPeak) chunkPeak = absSample;
         }
       }
+      // Update peak level (normalize to 0.0-1.0, 32767 = max int16)
+      _lastPeakLevel = (float)chunkPeak / 32767.0f;
+      if (cb) cb(_lastPeakLevel);
     }
     vTaskDelay(1);
   }
 
+  _recording = false;
   _deinitI2s();
 
   // Escribir WAV header al inicio del buffer

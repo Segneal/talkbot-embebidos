@@ -192,6 +192,40 @@ input[type="range"] {
   display: block;
 }
 
+.chat-log {
+  max-height: 300px;
+  overflow-y: auto;
+  font-size: 0.95em;
+}
+
+.chat-msg {
+  padding: 8px 0;
+  border-bottom: 1px solid #0f3460;
+}
+
+.chat-msg:last-child {
+  border-bottom: none;
+}
+
+.chat-label {
+  font-size: 0.75em;
+  color: #888;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.chat-text {
+  line-height: 1.4;
+}
+
+.chat-user .chat-text {
+  color: #4caf50;
+}
+
+.chat-bot .chat-text {
+  color: #eee;
+}
+
 .text-input {
   width: 100%;
   padding: 10px;
@@ -213,4 +247,240 @@ input[type="range"] {
   color: #666;
   font-size: 0.8em;
   margin-bottom: 10px;
+}
+
+/* ===== TFT Display Virtual ===== */
+.tft-frame {
+  background: #111;
+  border-radius: 16px;
+  padding: 12px;
+  border: 3px solid #333;
+}
+
+.tft-screen {
+  width: 240px;
+  height: 240px;
+  margin: 0 auto;
+  background: #000;
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+  font-family: 'Courier New', monospace;
+}
+
+.tft-header {
+  text-align: center;
+  color: #00ffff;
+  font-size: 16px;
+  font-weight: bold;
+  padding: 6px 0;
+  border-bottom: 1px solid #333;
+}
+
+.tft-body {
+  padding: 8px 10px;
+}
+
+.tft-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.tft-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #222;
+  color: #888;
+  border: 1px solid #444;
+  font-size: 16px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.tft-btn:active {
+  background: #e94560;
+  color: #fff;
+}
+
+.tft-dots {
+  display: flex;
+  gap: 8px;
+}
+
+.tft-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #333;
+}
+
+.tft-dot.active {
+  background: #e94560;
+}
+
+/* TFT screen content styles */
+.tft-state-icon {
+  text-align: center;
+  font-size: 48px;
+  padding: 20px 0 10px;
+}
+
+.tft-state-label {
+  text-align: center;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.tft-info-dim {
+  text-align: center;
+  color: #777;
+  font-size: 11px;
+  position: absolute;
+  bottom: 18px;
+  width: 100%;
+}
+
+.tft-vol-big {
+  text-align: center;
+  font-size: 52px;
+  font-weight: bold;
+  color: #00ffff;
+  padding: 15px 0 10px;
+}
+
+.tft-bar-container {
+  margin: 0 16px;
+  height: 18px;
+  background: #222;
+  border-radius: 3px;
+  border: 1px solid #555;
+  overflow: hidden;
+}
+
+.tft-bar-fill {
+  height: 100%;
+  transition: width 0.3s;
+}
+
+.tft-bar-labels {
+  display: flex;
+  justify-content: space-between;
+  margin: 4px 16px 0;
+  color: #777;
+  font-size: 10px;
+}
+
+.tft-wifi-ssid {
+  text-align: center;
+  font-size: 16px;
+  color: #fff;
+  padding: 8px 0;
+}
+
+.tft-signal-bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+  height: 50px;
+  padding: 5px 0;
+}
+
+.tft-signal-bar {
+  width: 14px;
+  background: #222;
+  border-radius: 2px;
+}
+
+.tft-signal-bar.active {
+  background: #00e676;
+}
+
+.tft-wifi-detail {
+  text-align: center;
+  color: #777;
+  font-size: 11px;
+  padding: 4px 0;
+}
+
+.tft-wifi-ip {
+  text-align: center;
+  color: #00ffff;
+  font-size: 15px;
+  padding: 4px 0;
+}
+
+.tft-chat-label {
+  color: #777;
+  font-size: 10px;
+  text-transform: uppercase;
+  padding: 4px 0 2px;
+}
+
+.tft-chat-text {
+  font-size: 11px;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.tft-chat-user { color: #fff; }
+.tft-chat-bot { color: #00e676; }
+
+.tft-stat-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 11px;
+}
+
+.tft-stat-label { color: #777; }
+.tft-stat-value { color: #fff; }
+
+.tft-vu-container {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 8px;
+  height: 150px;
+  padding: 5px 0;
+}
+
+.tft-vu-side {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 3px;
+}
+
+.tft-vu-seg {
+  width: 30px;
+  height: 11px;
+  background: #222;
+  border-radius: 1px;
+}
+
+.tft-vu-main {
+  width: 50px;
+  background: #222;
+  border-radius: 2px;
+  border: 1px solid #555;
+  position: relative;
+  overflow: hidden;
+}
+
+.tft-vu-fill {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  transition: height 0.15s;
+}
+
+.tft-vu-pct {
+  text-align: center;
+  color: #fff;
+  font-size: 12px;
+  padding: 4px 0;
 }
